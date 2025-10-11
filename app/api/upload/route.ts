@@ -5,11 +5,12 @@ import path from 'path'
 import formidable from 'formidable'
 
 // Configure formidable to not automatically parse files
-export const config = {
+export const routeSegmentConfig = {
   api: {
     bodyParser: false,
   },
 }
+
 
 // POST /api/upload - Upload an image file
 export async function POST(request: Request) {
