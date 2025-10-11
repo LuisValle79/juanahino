@@ -65,8 +65,8 @@ Hemos implementado una solución completa para integrar una base de datos Postgr
 ### 5. Nuevas Páginas
 
 **Archivos creados:**
-- `app/(public)/catalogo/[id]/page.tsx` - Detalle de vehículo
-- `app/(public)/contacto/page.tsx` - Formulario de contacto y cotización
+- `app/public/catalogo/[id]/page.tsx` - Detalle de vehículo
+- `app/public/contacto/page.tsx` - Formulario de contacto y cotización
 
 **Características:**
 - Vista detallada de vehículos para usuarios públicos

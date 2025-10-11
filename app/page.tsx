@@ -35,12 +35,12 @@ export default function HomePage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-                <Link href="/catalogo">
+                <Link href="/public/catalogo">
                   <Button size="lg" className="text-lg px-8 py-6 bg-hino-red hover:bg-hino-red/90">
                     Explorar Catálogo
                   </Button>
                 </Link>
-                <Link href="/contacto">
+                <Link href="/public/contacto">
                   <Button
                     size="lg"
                     variant="outline"
@@ -169,7 +169,7 @@ export default function HomePage() {
                   <span className="inline-block px-3 py-1 bg-hino-red text-xs font-bold rounded-full mb-2">CAMIÓN LIGERO</span>
                   <h3 className="text-2xl font-bold mb-1">HINO Serie 300</h3>
                   <p className="mb-4 opacity-90">Ideal para distribución urbana</p>
-                  <Link href="/catalogo?tipo=camion&categoria=Ligero">
+                  <Link href="/public/catalogo?tipo=camion&categoria=Ligero">
                     <Button variant="outline" size="sm" className="border-white text-white hover:bg-white hover:text-primary">
                       Ver Detalles
                     </Button>
@@ -188,7 +188,7 @@ export default function HomePage() {
                   <span className="inline-block px-3 py-1 bg-hino-red text-xs font-bold rounded-full mb-2">CAMIÓN MEDIANO</span>
                   <h3 className="text-2xl font-bold mb-1">HINO Serie 500</h3>
                   <p className="mb-4 opacity-90">Potencia y eficiencia para tu negocio</p>
-                  <Link href="/catalogo?tipo=camion&categoria=Mediano">
+                  <Link href="/public/catalogo?tipo=camion&categoria=Mediano">
                     <Button variant="outline" size="sm" className="border-white text-white hover:bg-white hover:text-primary">
                       Ver Detalles
                     </Button>
@@ -207,7 +207,7 @@ export default function HomePage() {
                   <span className="inline-block px-3 py-1 bg-hino-red text-xs font-bold rounded-full mb-2">BUS URBANO</span>
                   <h3 className="text-2xl font-bold mb-1">HINO AK Bus</h3>
                   <p className="mb-4 opacity-90">Comfort y eficiencia para transporte urbano</p>
-                  <Link href="/catalogo?tipo=bus&categoria=Urbano">
+                  <Link href="/public/catalogo?tipo=bus&categoria=Urbano">
                     <Button variant="outline" size="sm" className="border-white text-white hover:bg-white hover:text-primary">
                       Ver Detalles
                     </Button>
@@ -217,7 +217,7 @@ export default function HomePage() {
             </div>
             
             <div className="text-center mt-12">
-              <Link href="/catalogo">
+              <Link href="/public/catalogo">
                 <Button size="lg" className="px-8 py-6 text-lg">
                   Ver Catálogo Completo
                 </Button>
@@ -234,12 +234,12 @@ export default function HomePage() {
               Contáctanos hoy y descubre cómo HINO puede ayudarte a llevar tu operación al siguiente nivel.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/contacto">
+              <Link href="/public/contacto">
                 <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
                   Contactar Asesor
                 </Button>
               </Link>
-              <Link href="/catalogo">
+              <Link href="/public/catalogo">
                 <Button
                   size="lg"
                   variant="outline"

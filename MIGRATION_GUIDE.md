@@ -67,7 +67,7 @@ Cambios principales:
 
 ### 4. Creación de Páginas Nuevas
 
-#### Detalle de Vehículo (`app/(public)/catalogo/[id]/page.tsx`)
+#### Detalle de Vehículo (`app/public/catalogo/[id]/page.tsx`)
 
 Nueva página que muestra los detalles de un vehículo específico, incluyendo:
 - Información detallada del vehículo
@@ -75,7 +75,7 @@ Nueva página que muestra los detalles de un vehículo específico, incluyendo:
 - Especificaciones técnicas
 - Vehículos relacionados
 
-#### Página de Contacto (`app/(public)/contacto/page.tsx`)
+#### Página de Contacto (`app/public/contacto/page.tsx`)
 
 Nueva página que permite a los clientes solicitar cotizaciones:
 - Formulario de contacto con validación

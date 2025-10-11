@@ -55,7 +55,7 @@ Administrador → Página de Usuarios → UserService → PostgreSQL → UserSer
 hino-connect-intranet/
 ├── app/                    # Páginas de la aplicación
 │   ├── (admin)/           # Páginas administrativas
-│   ├── (public)/          # Páginas públicas
+│   ├── public/           # Páginas públicas
 │   └── ...
 ├── components/            # Componentes reutilizables
 ├── services/              # Servicios de negocio
