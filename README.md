@@ -1,47 +1,132 @@
-# Hino Connect Intranet - Base de Datos
+# Hino Connect Intranet
 
-## Configuración de la Base de Datos
+## Descripción del Proyecto
 
-Este proyecto utiliza PostgreSQL como base de datos. Puedes usar una instalación local de PostgreSQL o Neon (PostgreSQL serverless).
+Hino Connect Intranet es un sistema de gestión empresarial integral desarrollado para Hino Motors, diseñado para optimizar la administración de flota de vehículos, gestión de usuarios, cotizaciones y notificaciones. Esta plataforma permite una gestión eficiente de los recursos empresariales mediante una interfaz intuitiva y funcionalidades avanzadas.
 
-### Opción 1: Usar Neon (Recomendado)
+El sistema está construido con tecnologías modernas y sigue las mejores prácticas de desarrollo web, garantizando un rendimiento óptimo, seguridad y escalabilidad.
 
-1. Visita [Neon](https://neon.tech/) y crea una cuenta gratuita
-2. Crea un nuevo proyecto de PostgreSQL
-3. Copia la cadena de conexión (Connection String)
-4. Crea un archivo `.env` en la raíz del proyecto con el siguiente contenido:
+## Tecnologías Utilizadas
 
-```env
-DATABASE_URL=tu_cadena_de_conexion_de_neon
-AUTH_SECRET=hino-connect-secret-key
+### Frontend
+- **Next.js 14** - Framework de React con App Router para renderizado del lado del servidor
+- **TypeScript** - Tipado estático para mayor seguridad y mantenibilidad
+- **Tailwind CSS** - Framework de estilos CSS utility-first
+- **React Server Components** - Para renderizado eficiente del lado del servidor
+- **Shadcn UI** - Componentes UI reutilizables basados en Radix UI
+
+### Backend
+- **API Routes de Next.js** - Endpoints RESTful para la comunicación cliente-servidor
+- **Servicios TypeScript** - Lógica de negocio encapsulada en servicios reutilizables
+- **PostgreSQL** - Base de datos relacional para almacenamiento de datos
+- **node-postgres (pg)** - Cliente PostgreSQL para Node.js
+
+### Herramientas y Utilidades
+- **Zod** - Validación de esquemas y tipado en tiempo de ejecución
+- **React Hook Form** - Gestión de formularios con validación
+- **Recharts** - Visualización de datos y gráficos
+- **Lucide React** - Conjunto de iconos SVG optimizados para React
+
+## Arquitectura del Sistema
+
+El proyecto sigue una arquitectura basada en servicios con separación clara de responsabilidades:
+
+```
+hino-connect-intranet/
+├── app/                    # Páginas y rutas de la aplicación
+│   ├── (admin)/           # Área administrativa protegida
+│   ├── public/            # Páginas públicas accesibles
+│   └── api/              # Endpoints API RESTful
+├── components/            # Componentes reutilizables de UI
+├── services/              # Servicios de lógica de negocio
+├── types/                 # Definiciones de tipos TypeScript
+├── lib/                   # Utilidades y configuración
+├── database/              # Scripts de base de datos
+└── ...
 ```
 
-### Opción 2: Instalación Local de PostgreSQL
+## APIs Disponibles
 
-1. Instala PostgreSQL en tu sistema:
-   - Windows: Descarga desde [postgresql.org](https://www.postgresql.org/download/windows/)
-   - macOS: `brew install postgresql`
-   - Linux: `sudo apt install postgresql`
+### API de Vehículos
+- `GET /api/vehicles` - Obtener todos los vehículos
+- `GET /api/vehicles?type=camion` - Filtrar vehículos por tipo
+- `GET /api/vehicles?status=disponible` - Filtrar vehículos por estado
+- `POST /api/vehicles` - Crear un nuevo vehículo
+- `GET /api/vehicles/[id]` - Obtener un vehículo específico por ID
+- `PUT /api/vehicles/[id]` - Actualizar un vehículo específico
+- `DELETE /api/vehicles/[id]` - Eliminar un vehículo específico
 
-2. Inicia el servicio de PostgreSQL:
-   - Windows: Inicia el servicio desde Servicios
-   - macOS: `brew services start postgresql`
-   - Linux: `sudo systemctl start postgresql`
+### API de Usuarios
+- `GET /api/users` - Obtener todos los usuarios
+- `POST /api/users` - Crear un nuevo usuario
+- `GET /api/users/[id]` - Obtener un usuario específico por ID
+- `PUT /api/users/[id]` - Actualizar un usuario específico
+- `DELETE /api/users/[id]` - Eliminar un usuario específico
 
-3. Crea la base de datos:
-```bash
-createdb hino_connect
-```
+### API de Cotizaciones
+- `GET /api/quotes` - Obtener todas las cotizaciones
+- `POST /api/quotes` - Actualizar estado o asignar asesor a una cotización
 
-4. Crea un archivo `.env` en la raíz del proyecto:
+### API de Notificaciones
+- `GET /api/notifications` - Obtener todas las notificaciones
+- `POST /api/notifications/mark-read` - Marcar notificaciones como leídas
+
+### API Pública
+- `GET /api/public/vehicles` - Obtener vehículos disponibles para el público
+- `GET /api/public/advisors` - Obtener lista de asesores
+- `POST /api/auth/login` - Autenticación de usuarios
+
+## Características Principales
+
+### Gestión de Flota
+- Catálogo completo de vehículos Hino (camiones y buses)
+- Control de inventario y estado de vehículos
+- Gestión de imágenes y especificaciones técnicas
+- Seguimiento de disponibilidad y stock
+
+### Gestión de Usuarios
+- Administración de perfiles de usuarios (administradores y asesores)
+- Control de acceso basado en roles
+- Seguimiento de rendimiento de asesores
+
+### Sistema de Cotizaciones
+- Recepción y procesamiento de solicitudes de cotización
+- Asignación automática a asesores
+- Seguimiento de estado de cotizaciones
+- Priorización por urgencia
+
+### Panel de Notificaciones
+- Sistema de alertas en tiempo real
+- Notificaciones automáticas por eventos del sistema
+- Clasificación por prioridad y tipo
+
+### Informes y Estadísticas
+- Dashboards con métricas clave de negocio
+- Gráficos de rendimiento y tendencias
+- Reportes exportables
+
+## Configuración del Entorno
+
+### Requisitos Previos
+- Node.js 18+ o superior
+- PostgreSQL 13+ o Neon (PostgreSQL serverless)
+- npm, yarn o pnpm
+
+### Variables de Entorno
 ```env
 DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/hino_connect
 AUTH_SECRET=hino-connect-secret-key
 ```
 
-## Creación del Esquema de Base de Datos
+## Instalación y Desarrollo
 
-1. Asegúrate de tener instaladas las dependencias del proyecto:
+1. Clonar el repositorio:
+```bash
+git clone <repositorio-url>
+cd hino-connect-intranet
+```
+
+2. Instalar dependencias:
 ```bash
 npm install
 # o
@@ -50,79 +135,20 @@ yarn install
 pnpm install
 ```
 
-2. Ejecuta el script de creación del esquema:
+3. Configurar variables de entorno:
 ```bash
-psql -d hino_connect -f database/schema.sql
+cp .env.example .env
+# Editar .env con tus credenciales
 ```
 
-O si estás usando Neon, puedes ejecutar el contenido del archivo `database/schema.sql` en el editor de Neon.
+4. Inicializar la base de datos:
+```bash
+npm run init-db
+# o
+pnpm init-db
+```
 
-## Estructura de la Base de Datos
-
-La base de datos incluye las siguientes tablas:
-
-1. **vehicles** - Flota de vehículos
-2. **users** - Usuarios del sistema (administradores y asesores)
-3. **quotes** - Solicitudes de cotización
-4. **notifications** - Notificaciones del sistema
-5. **vehicle_images** - Imágenes adicionales de vehículos
-6. **quote_attachments** - Archivos adjuntos a cotizaciones
-
-## Tipos de Datos Personalizados
-
-El esquema define los siguientes tipos enumerados:
-
-- `vehicle_type`: camion, bus
-- `vehicle_status`: disponible, reservado, vendido
-- `quote_status`: pendiente, en-proceso, enviada, cerrada
-- `quote_priority`: alta, media, baja
-- `user_role`: admin, asesor
-- `user_status`: activo, inactivo
-- `notification_type`: alert, maintenance, fuel, system, quote
-- `notification_priority`: alta, media, baja
-
-## Índices
-
-Se han creado índices en las columnas más consultadas para mejorar el rendimiento:
-
-- Índices en vehículos por tipo y estado
-- Índices en usuarios por rol y estado
-- Índices en cotizaciones por estado y prioridad
-- Índices en notificaciones por estado y tipo
-
-## Datos de Ejemplo
-
-El script incluye datos de ejemplo para:
-
-- Vehículos (5 modelos de camiones y buses)
-- Usuarios (5 usuarios: 3 asesores y 2 administradores)
-- Cotizaciones (4 solicitudes de ejemplo)
-- Notificaciones (3 notificaciones de ejemplo)
-
-## Servicios
-
-El proyecto incluye servicios para interactuar con la base de datos:
-
-- `VehicleService` - Gestión de vehículos
-- `UserService` - Gestión de usuarios
-- `QuoteService` - Gestión de cotizaciones
-- `NotificationService` - Gestión de notificaciones
-
-## Tipos TypeScript
-
-Se han definido tipos TypeScript para cada entidad:
-
-- `Vehicle` - Vehículo
-- `User` - Usuario
-- `Quote` - Cotización
-- `Notification` - Notificación
-
-## Desarrollo
-
-Para desarrollar con la base de datos:
-
-1. Asegúrate de que el archivo `.env` está configurado correctamente
-2. Ejecuta el servidor de desarrollo:
+5. Iniciar el servidor de desarrollo:
 ```bash
 npm run dev
 # o
@@ -131,31 +157,33 @@ yarn dev
 pnpm dev
 ```
 
-3. Las páginas administrativas usarán automáticamente la base de datos para:
-   - Mostrar y gestionar la flota de vehículos
-   - Administrar usuarios
-   - Revisar y asignar cotizaciones
-   - Ver y gestionar notificaciones
+6. Acceder a la aplicación:
+```
+http://localhost:3000
+```
 
-## Problemas Comunes
+## Despliegue
 
-### Conexión a la Base de Datos
-
-Si tienes problemas de conexión:
-
-1. Verifica que la cadena de conexión en `.env` es correcta
-2. Asegúrate de que el servicio de PostgreSQL está corriendo
-3. Verifica que las credenciales son correctas
-
-### Permisos
-
-Si recibes errores de permisos:
-
-1. Asegúrate de que el usuario de la base de datos tiene permisos suficientes
-2. En Neon, verifica que estás usando la cadena de conexión correcta
+El proyecto está optimizado para desplegarse en Vercel, aunque también puede ejecutarse en cualquier entorno compatible con Node.js.
 
 ## Seguridad
 
-- Nunca commitees archivos `.env` al repositorio
-- Usa variables de entorno para almacenar credenciales sensibles
-- El archivo `.env.example` muestra el formato esperado sin credenciales reales
+- Autenticación basada en tokens JWT
+- Contraseñas almacenadas con hash seguro
+- Validación de datos en todas las entradas
+- Protección contra ataques comunes
+
+## Contribución
+
+1. Crear una rama para tu función (`git checkout -b feature/AmazingFeature`)
+2. Realizar tus cambios (`git commit -m 'Add some AmazingFeature'`)
+3. Publicar la rama (`git push origin feature/AmazingFeature`)
+4. Abrir un Pull Request
+
+## Licencia
+
+Este proyecto es propiedad de Hino Motors y está destinado exclusivamente para uso interno.
+
+## Contacto
+
+Para soporte técnico o consultas sobre el sistema, contactar al equipo de desarrollo de Hino Connect.
