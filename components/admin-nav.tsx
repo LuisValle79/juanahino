@@ -27,12 +27,12 @@ export function AdminNav() {
   const navItems: NavItem[] = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/fleet", icon: Truck, label: "Flota de Vehículos" },
-    //{ href: "/vehicles", icon: Car, label: "Vehículos" },
+    { href: "/vehicles", icon: Car, label: "Vehículos" },
     { href: "/users", icon: Users, label: "Usuarios" },
     { href: "/quotes", icon: FileText, label: "Cotizaciones" },
     // Removed inventory as it's redundant with vehicles for vehicle sales business
-    //{ href: "/maintenance/schedule", icon: Wrench, label: "Mantenimiento" },
-    //{ href: "/reports", icon: BarChart3, label: "Reportes" },
+    { href: "/maintenance/schedule", icon: Wrench, label: "Mantenimiento" },
+    { href: "/reports", icon: BarChart3, label: "Reportes" },
     { href: "/notifications", icon: Bell, label: "Notificaciones" },
     // Added logout option in sidebar 
     { href: "#", icon: LogOut, label: "Salir", onClick: logout },
