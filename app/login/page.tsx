@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Truck, Shield, Zap, Users } from "lucide-react"
+import { Truck, Shield, Zap, Users, LogOut } from "lucide-react"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -33,24 +33,19 @@ export default function LoginPage() {
       const data = await response.json()
       
       if (data.success) {
-        // Set cookie with user data
         const userData = {
           email: data.user.email,
           role: data.user.rol,
           name: data.user.nombre
         }
         
-        // Set cookie expiration based on "remember me" option
         const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60 // 30 days or 1 day
         
-        // Set cookie with proper domain and path
         document.cookie = `auth-token=${btoa(JSON.stringify(userData))}; path=/; max-age=${maxAge}; SameSite=Lax`
         
-        // Get redirect URL from query params or default to dashboard
         const urlParams = new URLSearchParams(window.location.search)
         const redirectUrl = urlParams.get('redirect') || '/dashboard'
         
-        // Redirect to dashboard
         window.location.href = redirectUrl
       } else {
         alert(`Error de autenticación: ${data.message}`)
@@ -63,86 +58,106 @@ export default function LoginPage() {
     }
   }
 
+  const handleLogout = () => {
+    // Eliminar la cookie de autenticación
+    document.cookie = `auth-token=; path=/; max-age=0; SameSite=Lax`
+    // Redirigir a la página de inicio pública
+    window.location.href = '/'
+  }
+
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-pan"
         style={{
-          backgroundImage: `url('/placeholder-byu57.png')`,
+          backgroundImage: `url('/images/hino-truck.png')`, // Reemplaza con la ruta real de la imagen
+          animationDuration: '20s', // Duración del movimiento
+          animationIterationCount: 'infinite', // Repetir infinitamente
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70"></div>
+        <div className="absolute inset-0 bg-black/60"></div> {/* Overlay oscuro para legibilidad */}
       </div>
 
-      {/* Background Pattern Overlay */}
-      <div className="absolute inset-0 bg-[url('/images/pattern.png')] opacity-10"></div>
+      {/* Background Pattern Overlay (desactivado por simplicidad, puedes reactivarlo si lo deseas) */}
+      <div className="absolute inset-0 bg-[url('/images/pattern.png')] opacity-0"></div>
+
+      {/* Botón de Salir (fuera del Card, en la esquina superior derecha) */}
+      <div className="absolute top-4 right-4 z-20">
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          className="bg-hino-dark/80 text-white hover:bg-hino-red/80 transition-all duration-200 shadow-soft rounded-lg flex items-center space-x-2 px-4 py-2"
+        >
+          <LogOut className="h-5 w-5" /> <span>Salir</span>
+        </Button>
+      </div>
 
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
         {/* Left Side - Branding & Features */}
-        <div className="hidden lg:block space-y-8">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-                <Truck className="w-6 h-6 text-primary-foreground" />
+        <div className="hidden lg:block space-y-12">
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
+                <Truck className="w-8 h-8 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">HINO CONNECT</h1>
-                <p className="text-gray-200">Tu Hino y tú más conectados que nunca</p>
+                <h1 className="text-5xl font-bold text-white">HINO CONNECT</h1>
+                <p className="text-xl text-gray-200">Tu Hino y tú más conectados que nunca</p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 border border-primary/30">
-                <Shield className="w-5 h-5 text-primary" />
+          <div className="space-y-8">
+            <div className="flex items-start space-x-6">
+              <div className="w-12 h-12 bg-primary/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 border border-primary/30">
+                <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">Gestión Segura</h3>
-                <p className="text-sm text-gray-200">
+                <h3 className="text-2xl font-semibold text-white">Gestión Segura</h3>
+                <p className="text-lg text-gray-200">
                   Acceso protegido a toda la información de tu flota con los más altos estándares de seguridad.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 border border-primary/30">
-                <Zap className="w-5 h-5 text-primary" />
+            <div className="flex items-start space-x-6">
+              <div className="w-12 h-12 bg-primary/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 border border-primary/30">
+                <Zap className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">Monitoreo en Tiempo Real</h3>
-                <p className="text-sm text-gray-200">
+                <h3 className="text-2xl font-semibold text-white">Monitoreo en Tiempo Real</h3>
+                <p className="text-lg text-gray-200">
                   Supervisa el estado y rendimiento de tus vehículos las 24 horas del día.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-primary/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 border border-primary/30">
-                <Users className="w-5 h-5 text-primary" />
+            <div className="flex items-start space-x-6">
+              <div className="w-12 h-12 bg-primary/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0 border border-primary/30">
+                <Users className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">Soporte Especializado</h3>
-                <p className="text-sm text-gray-200">
+                <h3 className="text-2xl font-semibold text-white">Soporte Especializado</h3>
+                <p className="text-lg text-gray-200">
                   Equipo técnico especializado disponible para resolver cualquier consulta.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-white">Estadísticas de Ventas</h4>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xl font-semibold text-white">Estadísticas de Ventas</h4>
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">247</div>
-                <div className="text-xs text-gray-200">Vehículos Vendidos</div>
+                <div className="text-3xl font-bold text-primary">247</div>
+                <div className="text-base text-gray-200">Vehículos Vendidos</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">S/ 8.2M</div>
-                <div className="text-xs text-gray-200">Ingresos del Año</div>
+                <div className="text-3xl font-bold text-primary">S/ 8.2M</div>
+                <div className="text-base text-gray-200">Ingresos del Año</div>
               </div>
             </div>
           </div>
@@ -248,6 +263,11 @@ export default function LoginPage() {
                   y{" "}
                   <Link href="/privacy" className="text-accent hover:text-accent/80 transition-colors">
                     Política de Privacidad
+                  </Link>
+                </div>
+                <div className="mt-4 text-sm text-muted-foreground">
+                  <Link href="/" className="text-accent hover:text-accent/80 font-medium transition-colors">
+                    Ir a la página de inicio pública
                   </Link>
                 </div>
               </div>

@@ -39,6 +39,16 @@ module.exports = {
       borderRadius: {
         '2xl': '1rem',
       },
+      animation: {
+        'pan': 'pan 20s infinite linear', // Animación de desplazamiento
+      },
+      keyframes: {
+        'pan': {
+          '0%': { backgroundPosition: '0% 0%' },
+          '50%': { backgroundPosition: '100% 0%' },
+          '100%': { backgroundPosition: '0% 0%' },
+        },
+      },
     },
   },
   plugins: [],
