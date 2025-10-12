@@ -1,13 +1,18 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ArrowLeft, Save, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -51,27 +56,21 @@ export default function AddUserPage() {
     }
   }
 
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
-  }
-
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return null
-    
+
     try {
       setIsUploading(true)
       const formData = new FormData()
-      formData.append('file', imageFile)
-      
-      const response = await fetch('/api/upload', {
-        method: 'POST',
+      formData.append("file", imageFile)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
         body: formData,
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         return data.url
       } else {
@@ -107,16 +106,12 @@ export default function AddUserPage() {
       let imageUrl = null
       if (imageFile) {
         imageUrl = await uploadImage()
-        if (!imageUrl) {
-          return // Error already handled in uploadImage
-        }
+        if (!imageUrl) return
       }
-      
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: formData.nombre,
           email: formData.email,
@@ -124,10 +119,10 @@ export default function AddUserPage() {
           rol: formData.rol,
           especialidad: formData.especialidad,
           estado: formData.estado,
-          password_hash: formData.password, // In a real app, this should be hashed
+          password_hash: formData.password,
           avatar_url: imageUrl,
           ventas: 0,
-          fecha_ingreso: new Date().toISOString()
+          fecha_ingreso: new Date().toISOString(),
         }),
       })
 
@@ -136,19 +131,19 @@ export default function AddUserPage() {
       if (data.success) {
         toast({
           title: "Usuario creado",
-          description: `${formData.nombre} ha sido agregado al sistema exitosamente.`,
+          description: `${formData.nombre} ha sido agregado exitosamente.`,
         })
         router.push("/users")
       } else {
         throw new Error(data.message || "Error al crear el usuario")
       }
     } catch (error) {
+      console.error("Error creating user:", error)
       toast({
         title: "Error",
         description: "No se pudo crear el usuario. Por favor inténtalo de nuevo.",
         variant: "destructive",
       })
-      console.error("Error creating user:", error)
     }
   }
 
@@ -166,7 +161,9 @@ export default function AddUserPage() {
             </Link>
             <div>
               <h1 className="text-lg font-bold">Agregar Usuario</h1>
-              <p className="text-xs text-muted-foreground">Registrar nuevo usuario en el sistema</p>
+              <p className="text-xs text-muted-foreground">
+                Registrar nuevo usuario en el sistema
+              </p>
             </div>
           </div>
         </div>
@@ -189,7 +186,9 @@ export default function AddUserPage() {
                       id="nombre"
                       placeholder="Juan Pérez García"
                       value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, nombre: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -201,7 +200,9 @@ export default function AddUserPage() {
                       type="email"
                       placeholder="juan.perez@hino.com.pe"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -214,7 +215,9 @@ export default function AddUserPage() {
                     type="tel"
                     placeholder="+51 999 888 777"
                     value={formData.telefono}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, telefono: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -230,7 +233,12 @@ export default function AddUserPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="rol">Rol *</Label>
-                    <Select value={formData.rol} onValueChange={(value) => setFormData({ ...formData, rol: value })}>
+                    <Select
+                      value={formData.rol}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, rol: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar rol" />
                       </SelectTrigger>
@@ -245,19 +253,35 @@ export default function AddUserPage() {
                     <Label htmlFor="especialidad">Especialidad *</Label>
                     <Select
                       value={formData.especialidad}
-                      onValueChange={(value) => setFormData({ ...formData, especialidad: value })}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, especialidad: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar especialidad" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Camiones Ligeros">Camiones Ligeros</SelectItem>
-                        <SelectItem value="Camiones Medianos">Camiones Medianos</SelectItem>
-                        <SelectItem value="Camiones Pesados">Camiones Pesados</SelectItem>
-                        <SelectItem value="Buses Urbanos">Buses Urbanos</SelectItem>
-                        <SelectItem value="Buses Interurbanos">Buses Interurbanos</SelectItem>
-                        <SelectItem value="Buses Premium">Buses Premium</SelectItem>
-                        <SelectItem value="Administración">Administración</SelectItem>
+                        <SelectItem value="Camiones Ligeros">
+                          Camiones Ligeros
+                        </SelectItem>
+                        <SelectItem value="Camiones Medianos">
+                          Camiones Medianos
+                        </SelectItem>
+                        <SelectItem value="Camiones Pesados">
+                          Camiones Pesados
+                        </SelectItem>
+                        <SelectItem value="Buses Urbanos">
+                          Buses Urbanos
+                        </SelectItem>
+                        <SelectItem value="Buses Interurbanos">
+                          Buses Interurbanos
+                        </SelectItem>
+                        <SelectItem value="Buses Premium">
+                          Buses Premium
+                        </SelectItem>
+                        <SelectItem value="Administración">
+                          Administración
+                        </SelectItem>
                         <SelectItem value="Gerencia">Gerencia</SelectItem>
                       </SelectContent>
                     </Select>
@@ -268,7 +292,9 @@ export default function AddUserPage() {
                   <Label htmlFor="estado">Estado *</Label>
                   <Select
                     value={formData.estado}
-                    onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, estado: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -282,7 +308,7 @@ export default function AddUserPage() {
               </CardContent>
             </Card>
 
-            {/* Credenciales de Acceso */}
+            {/* Credenciales */}
             <Card>
               <CardHeader>
                 <CardTitle>Credenciales de Acceso</CardTitle>
@@ -296,42 +322,55 @@ export default function AddUserPage() {
                       type="password"
                       placeholder="••••••••"
                       value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar Contraseña *</Label>
+                    <Label htmlFor="confirmPassword">
+                      Confirmar Contraseña *
+                    </Label>
                     <Input
                       id="confirmPassword"
                       type="password"
                       placeholder="••••••••"
                       value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                 </div>
-
-                <p className="text-sm text-muted-foreground">
-                  La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números.
-                </p>
               </CardContent>
             </Card>
 
-            {/* Foto de Perfil */}
+            {/* ✅ Foto de Perfil corregida */}
             <Card>
               <CardHeader>
                 <CardTitle>Foto de Perfil</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                <div
+                  className="border-2 border-dashed rounded-lg p-8 text-center"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) handleImageChange({ target: { files: [file] } } as any)
+                  }}
+                >
                   {imagePreview ? (
                     <div className="relative inline-block">
-                      <img 
-                        src={imagePreview} 
-                        alt="Vista previa" 
+                      <img
+                        src={imagePreview}
+                        alt="Vista previa"
                         className="max-h-48 rounded-lg object-contain"
                       />
                       <Button
@@ -349,27 +388,26 @@ export default function AddUserPage() {
                       <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
                       <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">
-                          Arrastra y suelta una imagen aquí, o haz clic para seleccionar
+                          Arrastra y suelta una imagen aquí, o haz clic para
+                          seleccionar
                         </p>
-                        <div className="relative">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={triggerFileInput}
-                            disabled={isUploading}
-                          >
-                            {isUploading ? "Subiendo..." : "Seleccionar Imagen"}
-                          </Button>
-                          <Input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            onChange={handleImageChange}
-                            disabled={isUploading}
-                          />
-                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageChange}
+                          disabled={isUploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? "Subiendo..." : "Seleccionar Imagen"}
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -377,15 +415,17 @@ export default function AddUserPage() {
               </CardContent>
             </Card>
 
-            {/* Actions */}
+            {/* Acciones */}
             <div className="flex justify-end gap-4">
-              <Link href="/admin/users">
+              <Link href="/users">
                 <Button type="button" variant="outline">
                   Cancelar
                 </Button>
               </Link>
               <Button type="submit" disabled={isUploading}>
-                {isUploading ? "Creando usuario..." : (
+                {isUploading ? (
+                  "Creando usuario..."
+                ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
                     Crear Usuario

@@ -2,61 +2,64 @@ import { NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
-import formidable from 'formidable'
 
-// Configure formidable to not automatically parse files
-export const routeSegmentConfig = {
-  api: {
-    bodyParser: false,
-  },
-}
-
-
-// POST /api/upload - Upload an image file
 export async function POST(request: Request) {
   try {
-    // Create uploads directory if it doesn't exist
+    // Directorio donde se guardarán las imágenes
     const uploadDir = path.join(process.cwd(), 'public', 'uploads')
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true })
     }
-    
-    // Parse form data
+
+    // Obtener el archivo desde el FormData
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    
+    const file = formData.get('file') as File | null
+
     if (!file) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "No se ha proporcionado ningún archivo."
-      }, { status: 400 })
+      return NextResponse.json(
+        { success: false, message: 'No se envió ningún archivo.' },
+        { status: 400 }
+      )
     }
-    
-    // Generate unique filename
-    const fileExtension = file.name.split('.').pop()
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json(
+        { success: false, message: 'Solo se permiten imágenes.' },
+        { status: 400 }
+      )
+    }
+
+    // Validar tamaño máximo (5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, message: 'La imagen es demasiado grande (máx. 5MB).' },
+        { status: 400 }
+      )
+    }
+
+    // Generar nombre único
+    const fileExt = path.extname(file.name)
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${fileExt}`
     const filePath = path.join(uploadDir, fileName)
-    
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    
-    // Save file to disk
+
+    // Guardar el archivo en el disco
+    const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(filePath, buffer)
-    
-    // Return the URL where the file can be accessed
+
+    // Crear la URL pública
     const fileUrl = `/uploads/${fileName}`
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: "Archivo subido exitosamente.",
-      url: fileUrl
+
+    return NextResponse.json({
+      success: true,
+      message: 'Imagen subida correctamente.',
+      url: fileUrl,
     })
   } catch (error) {
-    console.error("Error uploading file:", error)
-    return NextResponse.json({ 
-      success: false, 
-      message: "Hubo un problema al subir el archivo."
-    }, { status: 500 })
+    console.error('Error al subir la imagen:', error)
+    return NextResponse.json(
+      { success: false, message: 'Error interno al subir la imagen.' },
+      { status: 500 }
+    )
   }
 }

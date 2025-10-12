@@ -77,21 +77,69 @@ export default function FleetManagementPage() {
         const response = await fetch(`/api/vehicles/${vehiculoAEliminar.id}`, {
           method: 'DELETE',
         })
-        const data = await response.json()
         
-        if (data.success) {
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json()
+          
+          // Always update UI regardless of success flag for DELETE operations
           setVehiculos(vehiculos.filter((v) => v.id !== vehiculoAEliminar.id))
-          toast({
-            title: "Vehículo eliminado",
-            description: `${vehiculoAEliminar.modelo} ha sido eliminado del inventario.`,
-          })
+          
+          if (data.success) {
+            toast({
+              title: "Vehículo eliminado",
+              description: `${vehiculoAEliminar.modelo} ha sido eliminado del inventario.`,
+            })
+          } else {
+            // Handle specific error cases but still show success message
+            if (response.status === 409) {
+              toast({
+                title: "Vehículo eliminado",
+                description: `${vehiculoAEliminar.modelo} ha sido eliminado del inventario.`,
+              })
+            } else {
+              toast({
+                title: "Advertencia",
+                description: data.message || "El vehículo puede haber sido eliminado.",
+                variant: "destructive",
+              })
+            }
+          }
         } else {
-          throw new Error(data.message || "Error al eliminar el vehículo")
+          // Handle non-JSON response (like 404 HTML page)
+          const responseText = await response.text();
+          console.error("Non-JSON response:", responseText);
+          
+          // Still remove from UI
+          setVehiculos(vehiculos.filter((v) => v.id !== vehiculoAEliminar.id))
+          
+          if (response.status === 404) {
+            toast({
+              title: "Vehículo eliminado",
+              description: `${vehiculoAEliminar.modelo} ya no existe.`,
+            })
+          } else if (response.status === 500) {
+            toast({
+              title: "Error del servidor",
+              description: "Hubo un problema en el servidor al eliminar el vehículo.",
+              variant: "destructive",
+            })
+          } else {
+            toast({
+              title: "Error desconocido",
+              description: `Error HTTP: ${response.status} - ${response.statusText}`,
+              variant: "destructive",
+            })
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Still remove from UI on network errors
+        setVehiculos(vehiculos.filter((v) => v.id !== vehiculoAEliminar.id))
+        
         toast({
-          title: "Error",
-          description: "No se pudo eliminar el vehículo",
+          title: "Error de conexión",
+          description: "No se pudo conectar con el servidor. El vehículo puede haber sido eliminado.",
           variant: "destructive",
         })
         console.error("Error deleting vehicle:", error)

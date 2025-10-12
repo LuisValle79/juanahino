@@ -133,21 +133,37 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
         body: JSON.stringify(vehicleData),
       })
       
-      const data = await response.json()
-      
-      if (data.success) {
-        toast({
-          title: "Vehículo actualizado",
-          description: `${formData.modelo} ha sido actualizado exitosamente.`,
-        })
-        router.push("/fleet")
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json()
+        
+        if (data.success) {
+          toast({
+            title: "Vehículo actualizado",
+            description: `${formData.modelo} ha sido actualizado exitosamente.`,
+          })
+          router.push("/fleet")
+        } else {
+          throw new Error(data.message || "Error al actualizar el vehículo")
+        }
       } else {
-        throw new Error(data.message || "Error al actualizar el vehículo")
+        // Handle non-JSON response (like 404 HTML page)
+        const responseText = await response.text();
+        console.error("Non-JSON response:", responseText);
+        
+        if (response.status === 404) {
+          throw new Error("Vehículo no encontrado.")
+        } else if (response.status === 500) {
+          throw new Error("Hubo un problema en el servidor al actualizar el vehículo.")
+        } else {
+          throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`)
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar el vehículo. Por favor inténtalo de nuevo.",
+        description: error.message || "No se pudo actualizar el vehículo. Por favor inténtalo de nuevo.",
         variant: "destructive",
       })
       console.error("Error updating vehicle:", error)

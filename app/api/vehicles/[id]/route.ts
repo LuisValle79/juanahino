@@ -101,8 +101,30 @@ export async function DELETE(
       success: true, 
       message: "Vehículo eliminado exitosamente."
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting vehicle:", error)
+    
+    // Handle specific error types
+    if (error.message && error.message.includes("No se puede eliminar")) {
+      return NextResponse.json({ 
+        success: false, 
+        message: error.message
+      }, { status: 409 }) // Conflict
+    }
+    
+    // For other errors, still consider it a success if the vehicle was actually deleted
+    try {
+      const stillExists = await VehicleService.getVehicleById(parseInt(params.id))
+      if (!stillExists) {
+        return NextResponse.json({ 
+          success: true, 
+          message: "Vehículo eliminado exitosamente."
+        })
+      }
+    } catch (checkError) {
+      console.error("Error checking if vehicle still exists:", checkError)
+    }
+    
     return NextResponse.json({ 
       success: false, 
       message: "Hubo un problema al eliminar el vehículo."

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,13 +11,14 @@ import { ArrowLeft, Save, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { User } from "@/types/user"
 
 export default function EditUserPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
+
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
@@ -27,20 +27,21 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     especialidad: "",
     estado: "",
   })
+
   const [passwordData, setPasswordData] = useState({
     newPassword: "",
     confirmNewPassword: ""
   })
+
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
 
-  // Load user data
+  // Cargar datos del usuario
   useEffect(() => {
     const loadUser = async () => {
       try {
         const response = await fetch(`/api/users/${params.id}`)
         const data = await response.json()
-        
         if (data.success && data.user) {
           const user = data.user
           setFormData({
@@ -51,10 +52,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
             especialidad: user.especialidad,
             estado: user.estado,
           })
-          // Set existing image preview if available
-          if (user.avatar_url) {
-            setImagePreview(user.avatar_url)
-          }
+          if (user.avatar_url) setImagePreview(user.avatar_url)
         } else {
           throw new Error(data.message || "Error al cargar el usuario")
         }
@@ -62,7 +60,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         console.error("Error loading user:", error)
         toast({
           title: "Error",
-          description: "No se pudo cargar el usuario. Por favor inténtalo de nuevo.",
+          description: "No se pudo cargar el usuario.",
           variant: "destructive",
         })
         router.push("/users")
@@ -74,36 +72,30 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     loadUser()
   }, [params.id, router, toast])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // === MANEJO DE IMAGEN ===
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
+    if (!file) return
+
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
   }
 
   const removeImage = () => {
     setImagePreview(null)
     setImageFile(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-  }
-
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Check if passwords match when changing password
+
     if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmNewPassword) {
       toast({
         title: "Error",
@@ -112,48 +104,47 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
       })
       return
     }
-    
+
     try {
+      setIsUploading(true)
+      let uploadedUrl = imagePreview
+
+      // Subir imagen si hay archivo nuevo
+      if (imageFile) {
+        const formDataImg = new FormData()
+        formDataImg.append("file", imageFile)
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formDataImg })
+        const uploadData = await uploadRes.json()
+        if (uploadData.success) uploadedUrl = uploadData.url
+      }
+
       const updateData: any = {
         ...formData,
+        avatar_url: uploadedUrl || null,
       }
-      
-      // Only include password if it's being changed
-      if (passwordData.newPassword) {
-        updateData.password_hash = passwordData.newPassword
-      }
-      
-      // Include avatar URL if an image was selected
-      if (imagePreview) {
-        updateData.avatar_url = imagePreview
-      }
-      
+
+      if (passwordData.newPassword) updateData.password_hash = passwordData.newPassword
+
       const response = await fetch(`/api/users/${params.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
       })
 
       const data = await response.json()
-
       if (data.success) {
-        toast({
-          title: "Usuario actualizado",
-          description: `${formData.nombre} ha sido actualizado exitosamente.`,
-        })
+        toast({ title: "Usuario actualizado", description: `${formData.nombre} ha sido actualizado.` })
         router.push("/users")
-      } else {
-        throw new Error(data.message || "Error al actualizar el usuario")
-      }
+      } else throw new Error(data.message)
     } catch (error) {
+      console.error(error)
       toast({
         title: "Error",
-        description: "No se pudo actualizar el usuario. Por favor inténtalo de nuevo.",
+        description: "No se pudo actualizar el usuario.",
         variant: "destructive",
       })
-      console.error("Error updating user:", error)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -171,7 +162,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-4">
             <Link href="/users">
@@ -188,162 +179,38 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             {/* Información Personal */}
             <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Información Personal</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="nombre">Nombre Completo *</Label>
-                    <Input
-                      id="nombre"
-                      value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                      required
-                    />
+                    <Input id="nombre" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} required />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Corporativo *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input id="email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
                   </div>
                 </div>
-
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="telefono">Teléfono *</Label>
-                  <Input
-                    id="telefono"
-                    type="tel"
-                    value={formData.telefono}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    required
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Información Laboral */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Laboral</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="rol">Rol *</Label>
-                    <Select value={formData.rol} onValueChange={(value) => setFormData({ ...formData, rol: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="asesor">Asesor de Ventas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="especialidad">Especialidad *</Label>
-                    <Select
-                      value={formData.especialidad}
-                      onValueChange={(value) => setFormData({ ...formData, especialidad: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Camiones Ligeros">Camiones Ligeros</SelectItem>
-                        <SelectItem value="Camiones Medianos">Camiones Medianos</SelectItem>
-                        <SelectItem value="Camiones Pesados">Camiones Pesados</SelectItem>
-                        <SelectItem value="Buses Urbanos">Buses Urbanos</SelectItem>
-                        <SelectItem value="Buses Interurbanos">Buses Interurbanos</SelectItem>
-                        <SelectItem value="Buses Premium">Buses Premium</SelectItem>
-                        <SelectItem value="Administración">Administración</SelectItem>
-                        <SelectItem value="Gerencia">Gerencia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="estado">Estado *</Label>
-                  <Select
-                    value={formData.estado}
-                    onValueChange={(value) => setFormData({ ...formData, estado: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="activo">Activo</SelectItem>
-                      <SelectItem value="inactivo">Inactivo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cambiar Contraseña */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Cambiar Contraseña</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Deja estos campos vacíos si no deseas cambiar la contraseña del usuario.
-                </p>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">Nueva Contraseña</Label>
-                    <Input 
-                      id="newPassword" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmNewPassword">Confirmar Nueva Contraseña</Label>
-                    <Input 
-                      id="confirmNewPassword" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={passwordData.confirmNewPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-                    />
-                  </div>
+                  <Input id="telefono" type="tel" value={formData.telefono} onChange={e => setFormData({ ...formData, telefono: e.target.value })} required />
                 </div>
               </CardContent>
             </Card>
 
             {/* Foto de Perfil */}
             <Card>
-              <CardHeader>
-                <CardTitle>Foto de Perfil</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Foto de Perfil</CardTitle></CardHeader>
               <CardContent>
                 <div className="border-2 border-dashed rounded-lg p-8 text-center">
                   {imagePreview ? (
                     <div className="relative inline-block">
-                      <img 
-                        src={imagePreview} 
-                        alt="Vista previa" 
-                        className="max-h-48 rounded-lg object-contain"
-                      />
+                      <img src={imagePreview} alt="Vista previa" className="max-h-48 rounded-lg object-contain" />
                       <Button
                         type="button"
                         variant="destructive"
@@ -357,19 +224,20 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                   ) : (
                     <div className="space-y-4">
                       <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Arrastra y suelta una imagen aquí, o haz clic para seleccionar
-                        </p>
-                        <Button type="button" variant="outline" size="sm" onClick={triggerFileInput}>
-                          Seleccionar Imagen
+                      <p className="text-sm text-muted-foreground">
+                        Arrastra y suelta una imagen aquí, o haz clic para seleccionar
+                      </p>
+                      <div className="relative inline-block">
+                        <Button type="button" variant="outline" size="sm" disabled={isUploading}>
+                          {isUploading ? "Subiendo..." : "Seleccionar Imagen"}
                         </Button>
                         <Input
                           ref={fileInputRef}
                           type="file"
                           accept="image/*"
-                          className="hidden"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={handleImageChange}
+                          disabled={isUploading}
                         />
                       </div>
                     </div>
@@ -378,14 +246,12 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
 
-            {/* Actions */}
+            {/* Botones */}
             <div className="flex justify-end gap-4">
               <Link href="/users">
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
+                <Button variant="outline">Cancelar</Button>
               </Link>
-              <Button type="submit">
+              <Button type="submit" disabled={isUploading}>
                 <Save className="h-4 w-4 mr-2" />
                 Guardar Cambios
               </Button>

@@ -129,22 +129,38 @@ export class VehicleService {
 
   // Delete a vehicle
   static async deleteVehicle(id: number): Promise<boolean> {
-    // First get vehicle info for notification
-    const vehicle = await this.getVehicleById(id)
-    
-    const result = await db.query('DELETE FROM vehicles WHERE id = $1', [id])
-    const deleted = result.rowCount !== null && result.rowCount > 0
-    
-    // Create notification for vehicle deletion
-    if (deleted && vehicle) {
-      await NotificationService.createVehicleNotification(
-        `Se ha eliminado el vehículo: ${vehicle.modelo}`,
-        vehicle.id,
-        'media'
-      )
+    try {
+      // First get vehicle info for notification
+      const vehicle = await this.getVehicleById(id)
+      
+      if (!vehicle) {
+        return false // Vehicle not found
+      }
+      
+      // First, remove vehicle reference from notifications to avoid foreign key constraint
+      await db.query('UPDATE notifications SET vehiculo_id = NULL WHERE vehiculo_id = $1', [id])
+      
+      // Delete related vehicle images (these can be safely deleted)
+      await db.query('DELETE FROM vehicle_images WHERE vehicle_id = $1', [id])
+      
+      // Now delete the vehicle
+      const result = await db.query('DELETE FROM vehicles WHERE id = $1', [id])
+      const deleted = result.rowCount !== null && result.rowCount > 0
+      
+      // Create notification for vehicle deletion
+      if (deleted) {
+        await NotificationService.createVehicleNotification(
+          `Se ha eliminado el vehículo: ${vehicle.modelo}`,
+          undefined, // No vehicle ID since it's deleted
+          'media'
+        )
+      }
+      
+      return deleted
+    } catch (error: any) {
+      console.error("Error deleting vehicle from database:", error)
+      throw error // Re-throw to be handled by the API route
     }
-    
-    return deleted
   }
 
   // Get vehicle statistics
