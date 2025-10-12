@@ -192,6 +192,16 @@ El sistema está diseñado para funcionar con Neon, un servicio de PostgreSQL se
 3. Obtener la cadena de conexión
 4. Configurar la variable de entorno `DATABASE_URL`
 
+### Configuración del Archivo .env
+
+Para que la aplicación pueda conectarse a la base de datos, es necesario crear un archivo `.env` en la raíz del proyecto con la siguiente variable de entorno:
+
+```env
+DATABASE_URL=postgresql://neondb_owner:npg_AT3ryds4pknF@ep-nameless-frost-ada33wb2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+
+Este archivo debe estar presente en el entorno de desarrollo local y no debe ser compartido públicamente ni subido al repositorio de código.
+
 ## Seguridad
 
 - Las contraseñas se almacenan con hash
