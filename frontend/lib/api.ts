@@ -1,0 +1,271 @@
+// API Configuration for Hino Connect Frontend
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+// API Client class
+class ApiClient {
+  private baseURL: string;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        // Try to get error details from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Handle empty responses (like DELETE operations)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        // Return empty object for non-JSON responses (like DELETE)
+        return {} as T;
+      }
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
+
+  // Vehicle API methods
+  async getVehicles() {
+    return this.request('/vehicles');
+  }
+
+  async getVehicleById(id: number) {
+    return this.request(`/vehicles/${id}`);
+  }
+
+  async createVehicle(vehicle: any) {
+    return this.request('/vehicles', {
+      method: 'POST',
+      body: JSON.stringify(vehicle),
+    });
+  }
+
+  async updateVehicle(id: number, vehicle: any) {
+    return this.request(`/vehicles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(vehicle),
+    });
+  }
+
+  async deleteVehicle(id: number) {
+    return this.request(`/vehicles/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getVehicleStats() {
+    return this.request('/vehicles/stats');
+  }
+
+  // User API methods
+  async getUsers() {
+    return this.request('/users');
+  }
+
+  async getUserById(id: number) {
+    return this.request(`/users/${id}`);
+  }
+
+  async createUser(user: any) {
+    return this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify(user),
+    });
+  }
+
+  async updateUser(id: number, user: any) {
+    return this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(user),
+    });
+  }
+
+  async deleteUser(id: number) {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getUserStats() {
+    return this.request('/users/stats');
+  }
+
+  async getActiveAdvisors() {
+    return this.request('/users/advisors/active');
+  }
+
+  // Alternative advisor endpoints
+  async getAdvisors() {
+    return this.request('/advisors');
+  }
+
+  async getActiveAdvisorsAlt() {
+    return this.request('/advisors/active');
+  }
+
+  // Quote API methods
+  async getQuotes() {
+    return this.request('/quotes');
+  }
+
+  async getQuoteById(id: number) {
+    return this.request(`/quotes/${id}`);
+  }
+
+  async createQuote(quote: any) {
+    return this.request('/quotes', {
+      method: 'POST',
+      body: JSON.stringify(quote),
+    });
+  }
+
+  async updateQuote(id: number, quote: any) {
+    return this.request(`/quotes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(quote),
+    });
+  }
+
+  async deleteQuote(id: number) {
+    return this.request(`/quotes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async assignAdvisor(quoteId: number, advisorId: number) {
+    return this.request(`/quotes/${quoteId}/assign/${advisorId}`, {
+      method: 'PUT',
+    });
+  }
+
+  async getQuoteStats() {
+    return this.request('/quotes/stats');
+  }
+
+  async getUnassignedQuotes() {
+    return this.request('/quotes/unassigned');
+  }
+
+  async getQuotesByStatus(status: string) {
+    return this.request(`/quotes/status/${status}`);
+  }
+
+  async getQuotesByPriority(priority: string) {
+    return this.request(`/quotes/priority/${priority}`);
+  }
+
+  async getQuotesByAdvisor(advisorId: number) {
+    return this.request(`/quotes/advisor/${advisorId}`);
+  }
+
+  async searchQuotes(query: string) {
+    return this.request(`/quotes/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async getQuotesByVehicleType(tipo: string) {
+    return this.request(`/quotes/vehicle-type?tipo=${encodeURIComponent(tipo)}`);
+  }
+
+  // Notification API methods
+  async getNotifications() {
+    return this.request('/notifications');
+  }
+
+  async getNotificationById(id: number) {
+    return this.request(`/notifications/${id}`);
+  }
+
+  async createNotification(notification: any) {
+    return this.request('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(notification),
+    });
+  }
+
+  async deleteNotification(id: number) {
+    return this.request(`/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async markNotificationAsRead(id: number) {
+    return this.request(`/notifications/${id}/mark-read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark-all-read', {
+      method: 'PUT',
+    });
+  }
+
+  async getUnreadNotifications() {
+    return this.request('/notifications/unread');
+  }
+
+  async getUnreadNotificationCount() {
+    const response: any = await this.request('/notifications/unread/count');
+    return response.count || 0;
+  }
+
+  async getNotificationStats() {
+    return this.request('/notifications/stats');
+  }
+
+  // Authentication methods
+  async login(email: string, password: string) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async logout() {
+    return this.request('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  // Health check
+  async healthCheck() {
+    return this.request('/health');
+  }
+}
+
+// Export singleton instance
+export const apiClient = new ApiClient(API_BASE_URL);
+export default apiClient;
