@@ -26,7 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useVehicles, useVehicleStats } from "@/hooks/useApi"
-import { Vehicle, VehicleStats } from "@/types"
+import { Vehicle, VehicleStats } from "@/types/vehicle"
 import { Loading, LoadingCard } from "@/components/ui/loading"
 import { ConnectionStatus } from "@/components/ConnectionStatus"
 import Link from "next/link"

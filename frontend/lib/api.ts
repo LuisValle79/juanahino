@@ -1,4 +1,6 @@
 // API Configuration for Hino Connect Frontend
+import { Vehicle, VehicleStats } from '@/types/vehicle';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 // API Client class
@@ -62,36 +64,36 @@ class ApiClient {
   }
 
   // Vehicle API methods
-  async getVehicles() {
-    return this.request('/vehicles');
+  async getVehicles(): Promise<Vehicle[]> {
+    return this.request<Vehicle[]>('/vehicles');
   }
 
-  async getVehicleById(id: number) {
-    return this.request(`/vehicles/${id}`);
+  async getVehicleById(id: number): Promise<Vehicle> {
+    return this.request<Vehicle>(`/vehicles/${id}`);
   }
 
-  async createVehicle(vehicle: any) {
-    return this.request('/vehicles', {
+  async createVehicle(vehicle: Partial<Vehicle>): Promise<Vehicle> {
+    return this.request<Vehicle>('/vehicles', {
       method: 'POST',
       body: JSON.stringify(vehicle),
     });
   }
 
-  async updateVehicle(id: number, vehicle: any) {
-    return this.request(`/vehicles/${id}`, {
+  async updateVehicle(id: number, vehicle: Partial<Vehicle>): Promise<Vehicle> {
+    return this.request<Vehicle>(`/vehicles/${id}`, {
       method: 'PUT',
       body: JSON.stringify(vehicle),
     });
   }
 
-  async deleteVehicle(id: number) {
-    return this.request(`/vehicles/${id}`, {
+  async deleteVehicle(id: number): Promise<void> {
+    return this.request<void>(`/vehicles/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async getVehicleStats() {
-    return this.request('/vehicles/stats');
+  async getVehicleStats(): Promise<VehicleStats> {
+    return this.request<VehicleStats>('/vehicles/stats');
   }
 
   // User API methods

@@ -12,8 +12,19 @@ export interface Vehicle {
   año: number
   estado: VehicleStatus
   stock: number
-  imagen_url: string
+  imagen_url?: string
+  imagenUrl?: string // For backward compatibility
   descripcion?: string
-  created_at: Date
-  updated_at: Date
+  created_at: Date | string
+  updated_at: Date | string
+}
+
+export interface VehicleStats {
+  total: number
+  disponible: number
+  reservado: number
+  vendido: number
+  available?: number // Alternative naming
+  byType?: Record<string, number>
+  byStatus?: Record<string, number>
 }

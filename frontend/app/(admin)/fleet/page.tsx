@@ -50,7 +50,7 @@ export default function FleetManagementPage() {
           console.log('🔍 Primer vehículo:', vehicles[0]) // Debug log
           console.log('🔍 Claves del primer vehículo:', Object.keys(vehicles[0])) // Debug log
         }
-        setVehiculos(vehicles as any[])
+        setVehiculos(vehicles)
       } catch (error) {
         toast({
           title: "Error",
@@ -256,7 +256,7 @@ export default function FleetManagementPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <BackendImage
-                          src={vehiculo.imagenUrl || vehiculo.imagen_url}
+                          src={vehiculo.imagen_url || vehiculo.imagenUrl}
                           alt={vehiculo.modelo}
                           className="w-12 h-12 rounded object-cover"
                           fallback="/placeholder.svg"
