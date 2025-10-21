@@ -1,7 +1,6 @@
 // Export all types from individual files
 export * from './vehicle';
 export * from './user';
-export * from './quote';
 export * from './quote-client';
 export * from './notification';
 
@@ -21,17 +20,6 @@ export interface PaginatedResponse<T> {
 }
 
 // Stats types
-export interface VehicleStats {
-  total: number;
-  disponible: number;
-  reservado: number;
-  vendido: number;
-  byType: {
-    camion: number;
-    bus: number;
-  };
-  byCategory: Record<string, number>;
-}
 
 export interface UserStats {
   total: number;
