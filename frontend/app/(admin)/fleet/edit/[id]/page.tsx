@@ -122,7 +122,7 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
       const formDataImg = new FormData()
       formDataImg.append("file", imageFile)
       
-      const uploadRes = await fetch("http://localhost:8080/api/upload", { 
+      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080'}/api/upload`, { 
         method: "POST", 
         body: formDataImg 
       })

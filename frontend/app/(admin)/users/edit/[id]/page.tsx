@@ -154,7 +154,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
           formDataImg.append("file", imageFile)
           
           // Usar el endpoint del backend (puerto 8080)
-          const uploadRes = await fetch("http://localhost:8080/api/upload", { 
+          const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080'}/api/upload`, { 
             method: "POST", 
             body: formDataImg 
           })
