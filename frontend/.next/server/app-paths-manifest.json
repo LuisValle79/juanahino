@@ -1,8 +1,8 @@
 {
+  "/page": "app/page.js",
   "/login/page": "app/login/page.js",
+  "/public/asesores/page": "app/public/asesores/page.js",
+  "/(admin)/reports/page": "app/(admin)/reports/page.js",
   "/(admin)/dashboard/page": "app/(admin)/dashboard/page.js",
-  "/(admin)/quotes/page": "app/(admin)/quotes/page.js",
-  "/(admin)/users/page": "app/(admin)/users/page.js",
-  "/(admin)/maintenance/schedule/page": "app/(admin)/maintenance/schedule/page.js",
-  "/(admin)/reports/page": "app/(admin)/reports/page.js"
+  "/public/nosotros/page": "app/public/nosotros/page.js"
 }
