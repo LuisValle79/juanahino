@@ -34,7 +34,7 @@ export default function AsesoresPage() {
       try {
         // Try to fetch from API first
         const data = await apiClient.getActiveAdvisors();
-        setAdvisors(data);
+        setAdvisors(data as Advisor[]);
       } catch (err) {
         console.error('Error fetching advisors from API:', err);
         

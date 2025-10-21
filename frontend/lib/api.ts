@@ -130,8 +130,8 @@ class ApiClient {
     return this.request('/users/stats');
   }
 
-  async getActiveAdvisors() {
-    return this.request('/users/advisors/active');
+  async getActiveAdvisors(): Promise<User[]> {
+    return this.request<User[]>('/users/advisors/active');
   }
 
   // Alternative advisor endpoints
@@ -139,8 +139,8 @@ class ApiClient {
     return this.request('/advisors');
   }
 
-  async getActiveAdvisorsAlt() {
-    return this.request('/advisors/active');
+  async getActiveAdvisorsAlt(): Promise<User[]> {
+    return this.request<User[]>('/advisors/active');
   }
 
   // Quote API methods
