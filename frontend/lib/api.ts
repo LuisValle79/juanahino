@@ -1,5 +1,6 @@
 // API Configuration for Hino Connect Frontend
 import { Vehicle, VehicleStats } from '@/types/vehicle';
+import { User } from '@/types/user';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -97,30 +98,30 @@ class ApiClient {
   }
 
   // User API methods
-  async getUsers() {
-    return this.request('/users');
+  async getUsers(): Promise<User[]> {
+    return this.request<User[]>('/users');
   }
 
-  async getUserById(id: number) {
-    return this.request(`/users/${id}`);
+  async getUserById(id: number): Promise<User> {
+    return this.request<User>(`/users/${id}`);
   }
 
-  async createUser(user: any) {
-    return this.request('/users', {
+  async createUser(user: Partial<User>): Promise<User> {
+    return this.request<User>('/users', {
       method: 'POST',
       body: JSON.stringify(user),
     });
   }
 
-  async updateUser(id: number, user: any) {
-    return this.request(`/users/${id}`, {
+  async updateUser(id: number, user: Partial<User>): Promise<User> {
+    return this.request<User>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(user),
     });
   }
 
-  async deleteUser(id: number) {
-    return this.request(`/users/${id}`, {
+  async deleteUser(id: number): Promise<void> {
+    return this.request<void>(`/users/${id}`, {
       method: 'DELETE',
     });
   }

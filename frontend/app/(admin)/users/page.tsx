@@ -297,7 +297,7 @@ export default function UsersManagementPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <BackendAvatar
-                          src={usuario.avatarUrl || usuario.avatar_url}
+                          src={usuario.avatar_url}
                           alt={usuario.nombre}
                           className="bg-primary text-primary-foreground"
                         >

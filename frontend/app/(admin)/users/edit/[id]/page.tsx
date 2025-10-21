@@ -13,6 +13,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { BackendImage } from "@/components/BackendImage"
+import { User, UserRole, UserStatus } from "@/types/user"
 
 export default function EditUserPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -68,8 +69,8 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
             ventas: user.ventas || 0,
             fechaIngreso: user.fechaIngreso || "",
           });
-          // Manejar avatarUrl (camelCase según tu backend)
-          if (user.avatarUrl) setImagePreview(user.avatarUrl);
+          // Manejar avatar_url
+          if (user.avatar_url || user.avatarUrl) setImagePreview(user.avatar_url || user.avatarUrl);
         } else {
           throw new Error("Usuario no encontrado");
         }
@@ -192,15 +193,15 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         nombre: formData.nombre,
         email: formData.email,
         telefono: formData.telefono,
-        rol: formData.rol,
+        rol: formData.rol as UserRole,
         especialidad: formData.especialidad,
-        estado: formData.estado,
+        estado: formData.estado as UserStatus,
         ventas: formData.ventas || 0,
-        fechaIngreso: originalUser.fechaIngreso, // Mantener fecha original
-        avatarUrl: uploadedUrl || originalUser.avatarUrl || null,
-        passwordHash: originalUser.passwordHash, // Mantener password original
-        createdAt: originalUser.createdAt, // Mantener fecha de creación
-        updatedAt: new Date().toISOString(), // Actualizar timestamp
+        fecha_ingreso: originalUser.fecha_ingreso || originalUser.fechaIngreso, // Mantener fecha original
+        avatar_url: uploadedUrl || originalUser.avatar_url || originalUser.avatarUrl || undefined,
+        password_hash: originalUser.password_hash || originalUser.passwordHash, // Mantener password original
+        created_at: originalUser.created_at || originalUser.createdAt, // Mantener fecha de creación
+        updated_at: new Date().toISOString(), // Actualizar timestamp
       }
 
       // Solo cambiar password si se proporcionó uno nuevo

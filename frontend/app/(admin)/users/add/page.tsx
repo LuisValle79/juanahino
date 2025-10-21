@@ -18,6 +18,7 @@ import { ArrowLeft, Save, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { UserRole, UserStatus } from "@/types/user"
 
 export default function AddUserPage() {
   const router = useRouter()
@@ -106,14 +107,14 @@ export default function AddUserPage() {
       const userData = {
         nombre: formData.nombre,
         email: formData.email,
-        telefono: formData.telefono || null,
-        rol: formData.rol,
-        especialidad: formData.especialidad || null,
-        estado: formData.estado || "activo",
-        passwordHash: formData.password,
-        avatarUrl: imageUrl || null,
+        telefono: formData.telefono || "",
+        rol: formData.rol as UserRole,
+        especialidad: formData.especialidad || "",
+        estado: (formData.estado || "activo") as UserStatus,
+        password_hash: formData.password,
+        avatar_url: imageUrl || undefined,
         ventas: 0,
-        fechaIngreso: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+        fecha_ingreso: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
       }
 
       const data = await apiClient.createUser(userData)
