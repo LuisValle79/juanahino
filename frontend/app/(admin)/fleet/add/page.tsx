@@ -14,6 +14,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
+import { VehicleType, VehicleStatus } from "@/types/vehicle"
 
 export default function AddVehiclePage() {
   const router = useRouter()
@@ -125,16 +126,16 @@ export default function AddVehiclePage() {
       // Crear vehículo con imagen_url
       const vehicleData = {
         modelo: formData.modelo,
-        tipo: formData.tipo,
+        tipo: formData.tipo as VehicleType,
         categoria: formData.categoria,
         precio: parseFloat(formData.precio) || 0,
         capacidad: formData.capacidad,
         motor: formData.motor,
         año: parseInt(formData.año) || new Date().getFullYear(),
-        estado: formData.estado,
+        estado: formData.estado as VehicleStatus,
         stock: parseInt(formData.stock) || 1,
         descripcion: formData.descripcion,
-        imagenUrl: imageUrl
+        imagenUrl: imageUrl || undefined
       }
       
       console.log('💾 Creando vehículo:', vehicleData) // Debug log
