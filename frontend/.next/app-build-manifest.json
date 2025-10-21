@@ -11,21 +11,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/public/catalogo/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/public/catalogo/page.js"
-    ],
-    "/public/catalogo/loading": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/public/catalogo/loading.js"
-    ],
-    "/public/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/public/layout.js"
-    ],
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -46,60 +31,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(admin)/layout.js"
     ],
-    "/(admin)/fleet/page": [
+    "/(admin)/reports/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/fleet/page.js"
+      "static/chunks/app/(admin)/reports/page.js"
     ],
-    "/(admin)/fleet/loading": [
+    "/(admin)/notifications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/fleet/loading.js"
+      "static/chunks/app/(admin)/notifications/page.js"
     ],
-    "/(admin)/fleet/add/page": [
+    "/(admin)/notifications/loading": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/fleet/add/page.js"
-    ],
-    "/(admin)/fleet/edit/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/fleet/edit/[id]/page.js"
-    ],
-    "/(admin)/users/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/users/page.js"
-    ],
-    "/(admin)/users/loading": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/users/loading.js"
-    ],
-    "/public/asesores/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/public/asesores/page.js"
-    ],
-    "/vehicles/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/vehicles/page.js"
-    ],
-    "/vehicles/loading": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/vehicles/loading.js"
-    ],
-    "/(admin)/quotes/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/quotes/page.js"
-    ],
-    "/(admin)/quotes/loading": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(admin)/quotes/loading.js"
+      "static/chunks/app/(admin)/notifications/loading.js"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
