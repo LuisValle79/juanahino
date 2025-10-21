@@ -12,6 +12,7 @@ import { ArrowLeft, Save, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { BackendImage } from "@/components/BackendImage"
 
 export default function EditUserPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -27,7 +28,11 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     rol: "",
     especialidad: "",
     estado: "",
+    ventas: 0,
+    fechaIngreso: "",
   })
+  
+  const [originalUser, setOriginalUser] = useState<any>(null)
 
   const [passwordData, setPasswordData] = useState({
     newPassword: "",
@@ -41,27 +46,42 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await apiClient.getUserById(Number(params.id)) as any
-        setFormData({
-          nombre: user.nombre,
-          email: user.email,
-          telefono: user.telefono,
-          rol: user.rol,
-          especialidad: user.especialidad,
-          estado: user.estado,
-        })
-          if (user.avatar_url) setImagePreview(user.avatar_url)
+        const userId = Number(params.id);
+        console.log("Cargando usuario con ID:", userId); // Debug log
+        
+        if (!userId || isNaN(userId)) {
+          throw new Error("ID de usuario inválido");
+        }
+        
+        const user = await apiClient.getUserById(userId) as any
+        console.log("Usuario cargado:", user); // Debug log
+        
+        if (user) {
+          setOriginalUser(user); // Guardar usuario original
+          setFormData({
+            nombre: user.nombre || "",
+            email: user.email || "",
+            telefono: user.telefono || "",
+            rol: user.rol || "",
+            especialidad: user.especialidad || "",
+            estado: user.estado || "",
+            ventas: user.ventas || 0,
+            fechaIngreso: user.fechaIngreso || "",
+          });
+          // Manejar avatarUrl (camelCase según tu backend)
+          if (user.avatarUrl) setImagePreview(user.avatarUrl);
         } else {
-          throw new Error(data.message || "Error al cargar el usuario")
+          throw new Error("Usuario no encontrado");
         }
       } catch (error) {
         console.error("Error loading user:", error)
         toast({
           title: "Error",
-          description: "No se pudo cargar el usuario.",
+          description: `No se pudo cargar el usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`,
           variant: "destructive",
         })
-        router.push("/users")
+        // No redirigir inmediatamente para poder ver el error
+        // router.push("/users")
       } finally {
         setLoading(false)
       }
@@ -94,6 +114,25 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validaciones básicas
+    if (!formData.nombre.trim()) {
+      toast({
+        title: "Error",
+        description: "El nombre es requerido.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.email.trim()) {
+      toast({
+        title: "Error",
+        description: "El email es requerido.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmNewPassword) {
       toast({
         title: "Error",
@@ -109,28 +148,78 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
 
       // Subir imagen si hay archivo nuevo
       if (imageFile) {
-        const formDataImg = new FormData()
-        formDataImg.append("file", imageFile)
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: formDataImg })
-        const uploadData = await uploadRes.json()
-        if (uploadData.success) uploadedUrl = uploadData.url
+        try {
+          const formDataImg = new FormData()
+          formDataImg.append("file", imageFile)
+          
+          // Usar el endpoint del backend (puerto 8080)
+          const uploadRes = await fetch("http://localhost:8080/api/upload", { 
+            method: "POST", 
+            body: formDataImg 
+          })
+          
+          if (!uploadRes.ok) {
+            throw new Error(`Error ${uploadRes.status}: ${uploadRes.statusText}`)
+          }
+          
+          const uploadData = await uploadRes.json()
+          
+          if (uploadData.success) {
+            // Guardar solo la ruta relativa, no la URL completa
+            uploadedUrl = uploadData.url // Esto será algo como "/uploads/imagen.jpg"
+            toast({
+              title: "Imagen subida",
+              description: "La imagen se ha subido correctamente.",
+            });
+          } else {
+            throw new Error(uploadData.message || "Error al subir la imagen")
+          }
+        } catch (uploadError) {
+          console.error("Error uploading image:", uploadError)
+          toast({
+            title: "Error",
+            description: `No se pudo subir la imagen: ${uploadError instanceof Error ? uploadError.message : 'Error desconocido'}`,
+            variant: "destructive",
+          });
+          // Mantener la imagen preview actual si falla el upload
+          uploadedUrl = imagePreview;
+        }
       }
 
+      // Crear objeto basado en el usuario original, manteniendo TODOS los campos
       const updateData: any = {
-        ...formData,
-        avatar_url: uploadedUrl || null,
+        id: originalUser.id,
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        rol: formData.rol,
+        especialidad: formData.especialidad,
+        estado: formData.estado,
+        ventas: formData.ventas || 0,
+        fechaIngreso: originalUser.fechaIngreso, // Mantener fecha original
+        avatarUrl: uploadedUrl || originalUser.avatarUrl || null,
+        passwordHash: originalUser.passwordHash, // Mantener password original
+        createdAt: originalUser.createdAt, // Mantener fecha de creación
+        updatedAt: new Date().toISOString(), // Actualizar timestamp
       }
 
-      if (passwordData.newPassword) updateData.password_hash = passwordData.newPassword
+      // Solo cambiar password si se proporcionó uno nuevo
+      if (passwordData.newPassword && passwordData.newPassword.trim()) {
+        updateData.passwordHash = passwordData.newPassword;
+      }
 
+      console.log("Usuario original:", originalUser);
+      console.log("Datos a enviar:", updateData); // Debug log
+      
       await apiClient.updateUser(Number(params.id), updateData)
       toast({ title: "Usuario actualizado", description: `${formData.nombre} ha sido actualizado.` })
       router.push("/users")
     } catch (error) {
-      console.error(error)
+      console.error("Error completo:", error)
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
       toast({
         title: "Error",
-        description: "No se pudo actualizar el usuario.",
+        description: `No se pudo actualizar el usuario: ${errorMessage}`,
         variant: "destructive",
       })
     } finally {
@@ -200,7 +289,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 <div className="border-2 border-dashed rounded-lg p-8 text-center">
                   {imagePreview ? (
                     <div className="relative inline-block">
-                      <img src={imagePreview} alt="Vista previa" className="max-h-48 rounded-lg object-contain" />
+                      <BackendImage src={imagePreview} alt="Vista previa" className="max-h-48 rounded-lg object-contain" />
                       <Button
                         type="button"
                         variant="destructive"

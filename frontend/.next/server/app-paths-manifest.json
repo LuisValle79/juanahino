@@ -1,7 +1,8 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
+  "/vehicles/page": "app/vehicles/page.js",
+  "/(admin)/dashboard/page": "app/(admin)/dashboard/page.js",
   "/public/catalogo/page": "app/public/catalogo/page.js",
-  "/public/asesores/page": "app/public/asesores/page.js",
-  "/public/noticias/page": "app/public/noticias/page.js"
+  "/(admin)/quotes/page": "app/(admin)/quotes/page.js",
+  "/(admin)/users/page": "app/(admin)/users/page.js",
+  "/(admin)/fleet/page": "app/(admin)/fleet/page.js"
 }

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Truck, Bus, Search, Filter } from "lucide-react"
 import { Vehicle } from "@/types/vehicle"
 import { apiClient } from "@/lib/api"
+import { BackendImage } from "@/components/BackendImage"
 
 export default function CatalogoPage() {
   const [vehiculos, setVehiculos] = useState<Vehicle[]>([])
@@ -178,10 +179,11 @@ export default function CatalogoPage() {
             {vehiculosFiltrados.map((vehiculo) => (
               <Card key={vehiculo.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={vehiculo.imagen_url || "/placeholder.svg"}
+                  <BackendImage
+                    src={vehiculo.imagenUrl || vehiculo.imagen_url}
                     alt={vehiculo.modelo}
                     className="w-full h-full object-cover"
+                    fallback="/placeholder.svg"
                   />
                   <div className="absolute top-2 right-2">
                     {vehiculo.estado === "disponible" ? (

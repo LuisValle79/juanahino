@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Vehicle } from "@/types/vehicle"
 import { apiClient } from "@/lib/api"
+import { BackendImage } from "@/components/BackendImage"
 
 export default function EditVehiclePage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -35,12 +36,13 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Load vehicle data
   useEffect(() => {
     const loadVehicle = async () => {
       try {
-        const vehicle = await apiClient.getVehicleById(parseInt(params.id))
+        const vehicle = await apiClient.getVehicleById(parseInt(params.id)) as Vehicle
         
         setFormData({
           modelo: vehicle.modelo || "",
@@ -56,8 +58,18 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
         })
         
         // Set existing image preview if available
-        if (vehicle.imagen_url) {
-          setImagePreview(vehicle.imagen_url)
+        console.log('🚗 Vehículo cargado:', vehicle) // Debug log
+        console.log('🔍 Claves del vehículo:', Object.keys(vehicle)) // Debug log para ver todas las propiedades
+        console.log('🖼️ imagenUrl del vehículo:', (vehicle as any).imagenUrl) // Debug log camelCase
+        
+        // Usar imagenUrl (camelCase) como devuelve el backend
+        const imageUrl = (vehicle as any).imagenUrl
+        if (imageUrl) {
+          setImagePreview(imageUrl)
+          console.log('✅ Imagen preview establecida:', imageUrl) // Debug log
+        } else {
+          console.log('❌ No hay imagenUrl en el vehículo') // Debug log
+          setImagePreview(null) // Limpiar cualquier preview anterior
         }
       } catch (error) {
         toast({
@@ -101,10 +113,58 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
     }
   }
 
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return imagePreview // Return existing image if no new file
+    
+    try {
+      setIsUploading(true)
+      
+      const formDataImg = new FormData()
+      formDataImg.append("file", imageFile)
+      
+      const uploadRes = await fetch("http://localhost:8080/api/upload", { 
+        method: "POST", 
+        body: formDataImg 
+      })
+      
+      if (!uploadRes.ok) {
+        throw new Error(`Error ${uploadRes.status}: ${uploadRes.statusText}`)
+      }
+      
+      const uploadData = await uploadRes.json()
+      
+      if (uploadData.success) {
+        console.log('📤 Imagen subida exitosamente:', uploadData.url)
+        return uploadData.url
+      } else {
+        throw new Error(uploadData.message || "Error al subir la imagen")
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      toast({
+        title: "Error",
+        description: `No se pudo subir la imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        variant: "destructive",
+      })
+      return imagePreview // Return existing image on error
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
+      // Upload image first if a new one was selected
+      let imageUrl = imagePreview
+      if (imageFile) {
+        imageUrl = await uploadImage()
+        if (!imageUrl) {
+          return // Error already handled in uploadImage
+        }
+      }
+      
       // Convert form data to proper types
       const vehicleData = {
         modelo: formData.modelo,
@@ -117,9 +177,11 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
         estado: formData.estado,
         stock: parseInt(formData.stock) || 1,
         descripcion: formData.descripcion,
-        // Update imagen_url if a new image was selected
-        imagen_url: imagePreview || null
+        imagenUrl: imageUrl
       }
+      
+      console.log('💾 Guardando vehículo con imagen_url:', imageUrl) // Debug log
+      console.log('📋 Datos completos del vehículo:', vehicleData) // Debug log
       
       await apiClient.updateVehicle(parseInt(params.id), vehicleData)
       
@@ -127,6 +189,11 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
         title: "Vehículo actualizado",
         description: `${formData.modelo} ha sido actualizado exitosamente.`,
       })
+      
+      // Limpiar estado local antes de navegar
+      setImagePreview(null)
+      setImageFile(null)
+      
       router.push("/fleet")
     } catch (error: any) {
       toast({
@@ -341,10 +408,11 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
                 <div className="border-2 border-dashed rounded-lg p-8 text-center">
                   {imagePreview ? (
                     <div className="relative inline-block">
-                      <img 
+                      <BackendImage 
                         src={imagePreview} 
                         alt="Vista previa" 
                         className="max-h-48 rounded-lg object-contain"
+                        fallback="/placeholder.svg"
                       />
                       <Button
                         type="button"
@@ -363,8 +431,14 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
                         <p className="text-sm text-muted-foreground">
                           Arrastra y suelta imágenes aquí, o haz clic para seleccionar
                         </p>
-                        <Button type="button" variant="outline" size="sm" onClick={triggerFileInput}>
-                          Seleccionar Archivos
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={triggerFileInput}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? "Subiendo..." : "Seleccionar Archivos"}
                         </Button>
                         <Input
                           ref={fileInputRef}
@@ -387,9 +461,13 @@ export default function EditVehiclePage({ params }: { params: { id: string } }) 
                   Cancelar
                 </Button>
               </Link>
-              <Button type="submit">
-                <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
+              <Button type="submit" disabled={isUploading}>
+                {isUploading ? "Guardando..." : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar Cambios
+                  </>
+                )}
               </Button>
             </div>
           </div>

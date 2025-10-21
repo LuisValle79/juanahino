@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { Truck, Bus, Calendar, Fuel, Gauge, Users, Phone, Mail, MapPin } from "lucide-react"
 import { Vehicle } from "@/types/vehicle"
 import { apiClient } from "@/lib/api"
+import { BackendImage } from "@/components/BackendImage"
 
 export default function VehicleDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -91,10 +92,11 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
             <Card>
               <CardContent className="p-0">
                 <div className="relative h-96 w-full">
-                  <img
-                    src={vehicle.imagen_url || "/placeholder.svg"}
+                  <BackendImage
+                    src={vehicle.imagenUrl || vehicle.imagen_url}
                     alt={vehicle.modelo}
                     className="w-full h-full object-cover rounded-lg"
+                    fallback="/placeholder.svg"
                   />
                   <div className="absolute top-4 right-4">
                     {vehicle.estado === "disponible" ? (
@@ -249,10 +251,11 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
                     >
                       <div className="flex gap-4 p-3 rounded-lg hover:bg-muted transition-colors">
                         <div className="w-16 h-16 rounded overflow-hidden">
-                          <img
-                            src={relatedVehicle.imagen_url || "/placeholder.svg"}
+                          <BackendImage
+                            src={relatedVehicle.imagenUrl || relatedVehicle.imagen_url}
                             alt={relatedVehicle.modelo}
                             className="w-full h-full object-cover"
+                            fallback="/placeholder.svg"
                           />
                         </div>
                         <div className="flex-1">

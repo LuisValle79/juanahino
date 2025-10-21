@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { BackendAvatar } from "@/components/BackendAvatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
@@ -295,15 +296,16 @@ export default function UsersManagementPage() {
                   <TableRow key={usuario.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={usuario.avatar_url || "/placeholder.svg"} alt={usuario.nombre} />
-                          <AvatarFallback className="bg-primary text-primary-foreground">
-                            {usuario.nombre
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
+                        <BackendAvatar
+                          src={usuario.avatarUrl || usuario.avatar_url}
+                          alt={usuario.nombre}
+                          className="bg-primary text-primary-foreground"
+                        >
+                          {usuario.nombre
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </BackendAvatar>
                         <div>
                           <div className="font-medium">{usuario.nombre}</div>
                           <div className="text-sm text-muted-foreground">

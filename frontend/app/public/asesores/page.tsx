@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Mail, Phone, Award } from "lucide-react"
+import { BackendImage } from "@/components/BackendImage"
 import { apiClient } from "@/lib/api"
 
 type Advisor = {
@@ -18,7 +19,7 @@ type Advisor = {
   estado: string
   ventas: number
   fecha_ingreso: string
-  avatar_url: string | null
+  avatarUrl: string | null
   created_at: string
   updated_at: string
 }
@@ -49,7 +50,7 @@ export default function AsesoresPage() {
             estado: "activo",
             ventas: 150,
             fecha_ingreso: "2020-03-15",
-            avatar_url: "/placeholder-asesor.jpg",
+            avatarUrl: "/placeholder-asesor.jpg",
             created_at: "2020-03-15T00:00:00Z",
             updated_at: "2025-01-15T00:00:00Z"
           },
@@ -63,7 +64,7 @@ export default function AsesoresPage() {
             estado: "activo",
             ventas: 120,
             fecha_ingreso: "2021-06-20",
-            avatar_url: "/placeholder-asesor.jpg",
+            avatarUrl: "/placeholder-asesor.jpg",
             created_at: "2021-06-20T00:00:00Z",
             updated_at: "2025-01-15T00:00:00Z"
           },
@@ -77,7 +78,7 @@ export default function AsesoresPage() {
             estado: "activo",
             ventas: 95,
             fecha_ingreso: "2022-01-10",
-            avatar_url: "/placeholder-asesor.jpg",
+            avatarUrl: "/placeholder-asesor.jpg",
             created_at: "2022-01-10T00:00:00Z",
             updated_at: "2025-01-15T00:00:00Z"
           }
@@ -160,10 +161,11 @@ export default function AsesoresPage() {
               {advisors.map((asesor) => (
                 <Card key={asesor.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="relative h-64 overflow-hidden bg-muted">
-                    <img
-                      src={asesor.avatar_url || "/placeholder-asesor.jpg"}
+                    <BackendImage
+                      src={asesor.avatarUrl}
                       alt={asesor.nombre}
                       className="w-full h-full object-cover"
+                      fallback="/placeholder-asesor.jpg"
                     />
                     {asesor.ventas > 150 && (
                       <div className="absolute top-2 right-2">

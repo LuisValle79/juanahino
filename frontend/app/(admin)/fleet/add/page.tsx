@@ -61,19 +61,27 @@ export default function AddVehiclePage() {
     }
   }
 
-  const uploadImage = async (): Promise<string | null> => {
+  const uploadImageToVehicle = async (vehicleId: number): Promise<string | null> => {
     if (!imageFile) return null
     
     try {
       setIsUploading(true)
-      // TODO: Implement image upload endpoint
-      // For now, return the preview URL as placeholder
-      return imagePreview
+      
+      // Usar el nuevo endpoint específico para vehículos
+      const uploadResult = await apiClient.uploadVehicleImage(vehicleId, imageFile, true) // true = imagen principal
+      
+      if (uploadResult.success) {
+        console.log('📤 Imagen de vehículo subida exitosamente:', uploadResult) // Debug log
+        // Retornar la URL de la imagen
+        return `/api/vehicles/images/${uploadResult.imageId}`
+      } else {
+        throw new Error(uploadResult.message || "Error al subir la imagen")
+      }
     } catch (error) {
-      console.error("Error uploading image:", error)
+      console.error("Error uploading vehicle image:", error)
       toast({
         title: "Error",
-        description: "No se pudo subir la imagen. Por favor inténtalo de nuevo.",
+        description: `No se pudo subir la imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         variant: "destructive",
       })
       return null
@@ -86,16 +94,35 @@ export default function AddVehiclePage() {
     e.preventDefault()
     
     try {
-      // Upload image first if exists
+      // Subir imagen primero si existe (método anterior que funcionaba)
       let imageUrl = null
       if (imageFile) {
-        imageUrl = await uploadImage()
-        if (!imageUrl) {
-          return // Error already handled in uploadImage
+        try {
+          setIsUploading(true)
+          
+          const formDataImg = new FormData()
+          formDataImg.append("file", imageFile)
+          
+          const uploadRes = await fetch("http://localhost:8080/api/upload", { 
+            method: "POST", 
+            body: formDataImg 
+          })
+          
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json()
+            if (uploadData.success) {
+              imageUrl = uploadData.url
+              console.log('📤 Imagen subida exitosamente:', imageUrl)
+            }
+          }
+        } catch (uploadError) {
+          console.error("Error uploading image:", uploadError)
+        } finally {
+          setIsUploading(false)
         }
       }
       
-      // Convert form data to proper types
+      // Crear vehículo con imagen_url
       const vehicleData = {
         modelo: formData.modelo,
         tipo: formData.tipo,
@@ -107,8 +134,10 @@ export default function AddVehiclePage() {
         estado: formData.estado,
         stock: parseInt(formData.stock) || 1,
         descripcion: formData.descripcion,
-        imagen_url: imageUrl
+        imagenUrl: imageUrl
       }
+      
+      console.log('💾 Creando vehículo:', vehicleData) // Debug log
       
       await apiClient.createVehicle(vehicleData)
       
@@ -116,6 +145,11 @@ export default function AddVehiclePage() {
         title: "Vehículo agregado",
         description: `${formData.modelo} ha sido agregado al inventario exitosamente.`,
       })
+      
+      // Limpiar estado local antes de navegar
+      setImagePreview(null)
+      setImageFile(null)
+      
       router.push("/fleet")
     } catch (error) {
       toast({

@@ -24,11 +24,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Truck, Bus, Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye } from "lucide-react"
+import { Truck, Bus, Plus, Search, Filter, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { Vehicle } from "@/types/vehicle"
-import loading from "./loading"
+import { BackendImage } from "@/components/BackendImage"
 
 export default function FleetManagementPage() {
   const { toast } = useToast()
@@ -45,6 +45,11 @@ export default function FleetManagementPage() {
     const loadVehicles = async () => {
       try {
         const vehicles = await apiClient.getVehicles()
+        console.log('🚛 Vehículos cargados:', vehicles) // Debug log
+        if (vehicles.length > 0) {
+          console.log('🔍 Primer vehículo:', vehicles[0]) // Debug log
+          console.log('🔍 Claves del primer vehículo:', Object.keys(vehicles[0])) // Debug log
+        }
         setVehiculos(vehicles as any[])
       } catch (error) {
         toast({
@@ -250,10 +255,11 @@ export default function FleetManagementPage() {
                   <TableRow key={vehiculo.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={vehiculo.imagen_url || "/placeholder.svg"}
+                        <BackendImage
+                          src={vehiculo.imagenUrl || vehiculo.imagen_url}
                           alt={vehiculo.modelo}
                           className="w-12 h-12 rounded object-cover"
+                          fallback="/placeholder.svg"
                         />
                         <div>
                           <div className="font-medium">{vehiculo.modelo}</div>

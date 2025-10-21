@@ -31,10 +31,14 @@ class ApiClient {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
+          console.error("Error del backend:", errorData); // Debug log
+      console.error("Error completo:", errorData); // Debug log adicional
           if (errorData.error) {
             errorMessage = errorData.error;
           } else if (errorData.message) {
             errorMessage = errorData.message;
+          } else {
+            errorMessage = JSON.stringify(errorData);
           }
         } catch (e) {
           // If response is not JSON, use status text
@@ -258,6 +262,87 @@ class ApiClient {
     return this.request('/auth/logout', {
       method: 'POST',
     });
+  }
+
+  // Vehicle image methods
+  async uploadVehicleImage(vehicleId: number, file: File, esPrincipal: boolean = false): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('esPrincipal', esPrincipal.toString());
+
+    const url = `${this.baseURL}/vehicles/${vehicleId}/images`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Vehicle image upload failed:', error);
+      throw error;
+    }
+  }
+
+  async getVehicleImages(vehicleId: number): Promise<any[]> {
+    return this.request(`/vehicles/${vehicleId}/images`);
+  }
+
+  async deleteVehicleImage(imageId: number): Promise<any> {
+    return this.request(`/vehicles/images/${imageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Legacy file upload method (mantener para usuarios)
+  async uploadImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${this.baseURL}/upload`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      return result.url || result.path || result.filename;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      throw error;
+    }
   }
 
   // Health check
