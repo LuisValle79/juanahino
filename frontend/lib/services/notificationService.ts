@@ -26,7 +26,7 @@ class NotificationService {
   // Obtener todas las notificaciones con manejo de errores
   async getAll(): Promise<Notification[]> {
     try {
-      return await apiClient.getNotifications()
+      return await apiClient.getNotifications() as Notification[]
     } catch (error: any) {
       console.warn('NotificationService: Error loading notifications:', error.message)
       return []
@@ -36,7 +36,7 @@ class NotificationService {
   // Obtener notificaciones no leídas
   async getUnread(): Promise<Notification[]> {
     try {
-      return await apiClient.getUnreadNotifications()
+      return await apiClient.getUnreadNotifications() as Notification[]
     } catch (error: any) {
       console.warn('NotificationService: Error loading unread notifications:', error.message)
       return []
@@ -46,7 +46,7 @@ class NotificationService {
   // Obtener contador de no leídas
   async getUnreadCount(): Promise<number> {
     try {
-      return await apiClient.getUnreadNotificationCount()
+      return await apiClient.getUnreadNotificationCount() as number
     } catch (error: any) {
       console.warn('NotificationService: Error loading unread count:', error.message)
       return 0
@@ -86,7 +86,7 @@ class NotificationService {
   // Crear notificación
   async create(notification: Partial<Notification>): Promise<Notification> {
     try {
-      return await apiClient.createNotification(notification)
+      return await apiClient.createNotification(notification) as Notification
     } catch (error: any) {
       console.error('NotificationService: Error creating notification:', error.message)
       throw error
@@ -177,7 +177,6 @@ class NotificationService {
     }
   }
 
-  // Validar datos de notificación
   validateNotification(notification: Partial<Notification>): string[] {
     const errors: string[] = []
 
