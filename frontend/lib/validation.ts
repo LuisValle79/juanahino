@@ -121,19 +121,21 @@ export const validateBeforeSend = (data: any, type: 'user' | 'vehicle' | 'notifi
 
 // Sanitizar datos de notificación
 export const sanitizeNotificationData = (data: any) => {
+  const prioridad = ['alta', 'media', 'baja'].includes(data.prioridad?.toLowerCase()) 
+    ? data.prioridad.toLowerCase() 
+    : 'media';
+
+  const tipo = ['alert', 'maintenance', 'fuel', 'system', 'quote', 'user', 'vehicle', 'sale'].includes(data.tipo?.toLowerCase())
+    ? data.tipo.toLowerCase()
+    : 'system';
+
   return {
     ...data,
-    prioridad: data.prioridad?.toLowerCase(),
-    tipo: data.tipo?.toLowerCase(),
-    // Validar que sean valores permitidos
-    prioridad: ['alta', 'media', 'baja'].includes(data.prioridad?.toLowerCase()) 
-      ? data.prioridad.toLowerCase() 
-      : 'media',
-    tipo: ['alert', 'maintenance', 'fuel', 'system', 'quote', 'user', 'vehicle', 'sale'].includes(data.tipo?.toLowerCase())
-      ? data.tipo.toLowerCase()
-      : 'system'
+    prioridad,
+    tipo
   };
 };
+
 
 // Validar configuración de Cloudinary
 export const validateCloudinaryConfig = () => {
