@@ -198,16 +198,30 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                 <div>
                   <p className="text-sm text-muted-foreground">Fecha de Registro</p>
                   <p className="font-medium">
-                    {new Date(user.created_at).toLocaleDateString("es-PE")} {" "}
-                    {new Date(user.created_at).toLocaleTimeString("es-PE")}
+{user.created_at ? (
+  <>
+    {new Date(user.created_at).toLocaleDateString("es-PE")}{" "}
+    {new Date(user.created_at).toLocaleTimeString("es-PE")}
+  </>
+) : (
+  <span className="text-muted-foreground">Sin fecha</span>
+)}
+
                   </p>
                 </div>
                 
                 <div>
                   <p className="text-sm text-muted-foreground">Última Actualización</p>
                   <p className="font-medium">
-                    {new Date(user.updated_at).toLocaleDateString("es-PE")} {" "}
-                    {new Date(user.updated_at).toLocaleTimeString("es-PE")}
+{user.created_at ? (
+  <>
+    {new Date(user.created_at).toLocaleDateString("es-PE")}{" "}
+    {new Date(user.created_at).toLocaleTimeString("es-PE")}
+  </>
+) : (
+  <span className="text-muted-foreground">Sin fecha</span>
+)}
+
                   </p>
                 </div>
               </div>
