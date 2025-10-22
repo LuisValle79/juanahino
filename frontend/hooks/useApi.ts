@@ -1,27 +1,21 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 
-// Error handler utility
+// ===== Manejo de errores =====
 const handleApiError = (error: any) => {
-  // Error específico de Hibernate/JPA
   if (error.message?.includes('ByteBuddyInterceptor')) {
     return 'Error temporal del servidor. Reintentando...';
   }
-  
-  // Error de Cloudinary
   if (error.message?.includes('Invalid cloud_name')) {
     return 'Error de configuración de imágenes. Contacte al administrador.';
   }
-  
-  // Error de base de datos
   if (error.message?.includes('could not execute statement')) {
     return 'Error de base de datos. Verifique los datos ingresados.';
   }
-  
-  return error instanceof Error ? error.message : 'An error occurred';
+  return error instanceof Error ? error.message : 'Ocurrió un error desconocido';
 };
 
-// Generic hook for API calls with retry
+// ===== Hook genérico =====
 export function useApi<T>(
   apiCall: () => Promise<T>,
   dependencies: any[] = []
@@ -40,8 +34,7 @@ export function useApi<T>(
       setRetryCount(0);
     } catch (err: any) {
       const errorMessage = handleApiError(err);
-      
-      // Retry automático para errores 500
+
       if (err.message?.includes('500') && attempt < 3) {
         console.warn(`Retry attempt ${attempt + 1}/3`);
         setTimeout(() => {
@@ -50,7 +43,7 @@ export function useApi<T>(
         }, 1000 * (attempt + 1));
         return;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -66,7 +59,7 @@ export function useApi<T>(
   return { data, loading, error, refetch, retryCount };
 }
 
-// Specific hooks for each entity
+// ===== Hooks específicos =====
 export function useVehicles() {
   return useApi(() => apiClient.getVehicles());
 }
@@ -111,7 +104,7 @@ export function useUnassignedQuotes() {
   return useApi(() => apiClient.getUnassignedQuotes());
 }
 
-// Hook específico para notificaciones con fallback
+// ===== Hooks para notificaciones =====
 export function useNotifications() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,46 +113,39 @@ export function useNotifications() {
 
   const loadNotifications = async (isRetry: boolean = false) => {
     try {
-      if (!isRetry) {
-        setLoading(true);
-      }
+      if (!isRetry) setLoading(true);
       setError(null);
       const data = await apiClient.getNotifications();
-      setNotifications(data || []); // Fallback a array vacío
-      setRetryCount(0); // Reset retry count on success
+      setNotifications(data || []);
+      setRetryCount(0);
     } catch (err: any) {
       const errorMessage = handleApiError(err);
-      
-      // Si es error de Hibernate y no hemos reintentado mucho, reintentar
+
       if (err.message?.includes('ByteBuddyInterceptor') && retryCount < 3) {
-        console.warn(`Retrying notifications load, attempt ${retryCount + 1}`);
+        console.warn(`Retry notifications, attempt ${retryCount + 1}`);
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
           loadNotifications(true);
         }, 2000 * (retryCount + 1));
         return;
       }
-      
+
       setError(errorMessage);
-      setNotifications([]); // Fallback
+      setNotifications([]);
     } finally {
-      if (!isRetry) {
-        setLoading(false);
-      }
+      if (!isRetry) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadNotifications();
-    
-    // Polling cada 30 segundos con manejo de errores
+
     const interval = setInterval(() => {
-      // Solo hacer polling si no hay errores críticos
       if (!error || !error.includes('ByteBuddyInterceptor')) {
         loadNotifications(true);
       }
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, [retryCount]);
 
@@ -172,19 +158,24 @@ export function useNotifications() {
   };
 }
 
+// ===== Hooks tipados para compilación segura =====
 export function useUnreadNotifications() {
-  return useApi<any[]>(() => apiClient.getUnreadNotifications());
+  return useApi<any[]>(() =>
+    apiClient.getUnreadNotifications() as Promise<any[]>
+  );
 }
 
 export function useUnreadNotificationCount() {
-  return useApi<number>(() => apiClient.getUnreadNotificationCount());
+  return useApi<number>(() =>
+    apiClient.getUnreadNotificationCount() as Promise<number>
+  );
 }
 
 export function useNotificationStats() {
   return useApi(() => apiClient.getNotificationStats());
 }
 
-// Hook for mutations (create, update, delete)
+// ===== Hook para mutaciones =====
 export function useMutation<T, P>(
   mutationFn: (params: P) => Promise<T>
 ) {
@@ -198,7 +189,7 @@ export function useMutation<T, P>(
       const result = await mutationFn(params);
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Ocurrió un error');
       return null;
     } finally {
       setLoading(false);
