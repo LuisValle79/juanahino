@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Bell, BellRing } from "lucide-react"
 import { useUnreadNotificationCount } from "@/hooks/useApi"
-import { NotificationCenter } from "./NotificationCenter"
+import NotificationCenter from "./NotificationCenter"
 
 interface NotificationIndicatorProps {
   className?: string
@@ -18,22 +18,25 @@ export function NotificationIndicator({
   className,
   showBadge = true,
   autoRefresh = true,
-  refreshInterval = 30000, // 30 segundos
+  refreshInterval = 30000,
 }: NotificationIndicatorProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  
-  // Hook para obtener el contador de notificaciones no leídas
-  const { data: unreadCount, refetch } = useUnreadNotificationCount()
 
-  // Auto-refresh del contador
+  const { data: unreadCount, refetch } = useUnreadNotificationCount()
+  const hasUnread = (unreadCount || 0) > 0
+
+  const handleNotificationUpdate = () => {
+    refetch()
+  }
+
+  const toggleDropdown = () => setIsDropdownOpen(prev => !prev)
+
+  // Auto-refresh contador
   useEffect(() => {
     if (autoRefresh) {
-      const interval = setInterval(() => {
-        refetch()
-      }, refreshInterval)
-      
+      const interval = setInterval(() => refetch(), refreshInterval)
       return () => clearInterval(interval)
     }
   }, [autoRefresh, refreshInterval, refetch])
@@ -42,7 +45,7 @@ export function NotificationIndicator({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current && 
+        dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
@@ -50,36 +53,22 @@ export function NotificationIndicator({
         setIsDropdownOpen(false)
       }
     }
-
     if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [isDropdownOpen])
 
   // Cerrar dropdown con Escape
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsDropdownOpen(false)
-      }
+      if (event.key === "Escape") setIsDropdownOpen(false)
     }
-
     if (isDropdownOpen) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
+      document.addEventListener("keydown", handleEscape)
+      return () => document.removeEventListener("keydown", handleEscape)
     }
   }, [isDropdownOpen])
-
-  const hasUnread = (unreadCount || 0) > 0
-
-  const handleNotificationUpdate = () => {
-    refetch() // Actualizar el contador cuando se actualicen las notificaciones
-  }
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen)
-  }
 
   return (
     <div className="relative">
@@ -88,46 +77,38 @@ export function NotificationIndicator({
         variant="ghost"
         size="sm"
         className={`relative transition-all duration-200 hover:scale-105 ${
-          isDropdownOpen ? 'bg-blue-50 text-blue-600' : ''
+          isDropdownOpen ? "bg-blue-50 text-blue-600" : ""
         } ${className}`}
         onClick={toggleDropdown}
-        aria-label={`Notificaciones${hasUnread ? ` (${unreadCount || 0} sin leer)` : ''}`}
+        aria-label={`Notificaciones${hasUnread ? ` (${unreadCount || 0} sin leer)` : ""}`}
         aria-expanded={isDropdownOpen}
         aria-haspopup="true"
       >
-        <div className={`transition-all duration-300 ${hasUnread ? 'animate-pulse' : ''}`}>
-          {hasUnread ? (
-            <BellRing className="h-5 w-5 text-blue-600" />
-          ) : (
-            <Bell className="h-5 w-5" />
-          )}
+        <div className={`transition-all duration-300 ${hasUnread ? "animate-pulse" : ""}`}>
+          {hasUnread ? <BellRing className="h-5 w-5 text-blue-600" /> : <Bell className="h-5 w-5" />}
         </div>
-        
+
         {showBadge && hasUnread && (
           <Badge
             variant="destructive"
             className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs animate-bounce bg-red-500 hover:bg-red-600 shadow-lg"
           >
-            {(unreadCount || 0) > 99 ? '99+' : (unreadCount || 0)}
+            {(unreadCount || 0) > 99 ? "99+" : unreadCount}
           </Badge>
         )}
       </Button>
 
-      {/* Dropdown posicionado absolutamente */}
       {isDropdownOpen && (
-        <div 
+        <div
           ref={dropdownRef}
-          className="absolute top-full right-0 mt-2 z-[999999999999999999999999999] animate-in slide-in-from-top-2 duration-200"
-          style={{ 
-            transform: 'translateX(0)', // Ajustar si necesitas centrar mejor
-          }}
+          className="absolute top-full right-0 mt-2 z-50 animate-in slide-in-from-top-2 duration-200"
         >
           <NotificationCenter
             mode="dropdown"
             isDropdownOpen={isDropdownOpen}
-            onDropdownToggle={toggleDropdown}
             onNotificationUpdate={handleNotificationUpdate}
-            autoRefresh={true}
+            onDropdownToggle={toggleDropdown}
+            autoRefresh={autoRefresh}
           />
         </div>
       )}
