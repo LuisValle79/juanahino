@@ -4,7 +4,29 @@ import { User } from '@/types/user';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
-// API Client class
+// Error handler utility
+const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+
+  // Error específico de Hibernate/JPA
+  if (error.message?.includes('ByteBuddyInterceptor')) {
+    return 'Error temporal del servidor. Reintentando...';
+  }
+
+  // Error de Cloudinary
+  if (error.message?.includes('Invalid cloud_name')) {
+    return 'Error de configuración de imágenes. Contacte al administrador.';
+  }
+
+  // Error de base de datos
+  if (error.message?.includes('could not execute statement')) {
+    return 'Error de base de datos. Verifique los datos ingresados.';
+  }
+
+  return error.message || 'Error inesperado';
+};
+
+// API Client class with retry functionality
 class ApiClient {
   private baseURL: string;
 
@@ -14,7 +36,8 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retries: number = 3
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
@@ -26,42 +49,55 @@ class ApiClient {
       ...options,
     };
 
-    try {
-      const response = await fetch(url, config);
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, config);
 
-      if (!response.ok) {
-        // Try to get error details from response
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          console.error("Error del backend:", errorData); // Debug log
-      console.error("Error completo:", errorData); // Debug log adicional
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          } else {
-            errorMessage = JSON.stringify(errorData);
+        if (!response.ok) {
+          // Try to get error details from response
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            console.error("Error del backend:", errorData);
+            console.error("Error completo:", errorData);
+
+            if (errorData.error) {
+              errorMessage = errorData.error;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else {
+              errorMessage = JSON.stringify(errorData);
+            }
+          } catch (e) {
+            errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
           }
-        } catch (e) {
-          // If response is not JSON, use status text
-          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
 
-      // Handle empty responses (like DELETE operations)
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      } else {
-        // Return empty object for non-JSON responses (like DELETE)
-        return {} as T;
+          // Retry automático para errores 500
+          if (response.status === 500 && i < retries - 1) {
+            console.warn(`Retry ${i + 1}/${retries} for ${endpoint}`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            continue;
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        // Handle empty responses (like DELETE operations)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        } else {
+          return {} as T;
+        }
+      } catch (error) {
+        if (i === retries - 1) {
+          console.error('API request failed:', error);
+          throw new Error(handleApiError(error));
+        }
       }
-    } catch (error) {
-      console.error('API request failed:', error);
-      throw error;
     }
+
+    throw new Error('Request failed after all retries');
   }
 
   // Vehicle API methods
@@ -81,10 +117,21 @@ class ApiClient {
   }
 
   async updateVehicle(id: number, vehicle: Partial<Vehicle>): Promise<Vehicle> {
-    return this.request<Vehicle>(`/vehicles/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(vehicle),
-    });
+    try {
+      // Primero verificar que el vehículo existe
+      await this.getVehicleById(id);
+
+      // Luego intentar actualizar
+      return await this.request<Vehicle>(`/vehicles/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(vehicle),
+      });
+    } catch (error: any) {
+      if (error.message.includes('404')) {
+        throw new Error('Vehículo no encontrado. Puede haber sido eliminado.');
+      }
+      throw error;
+    }
   }
 
   async deleteVehicle(id: number): Promise<void> {
@@ -206,9 +253,19 @@ class ApiClient {
     return this.request(`/quotes/vehicle-type?tipo=${encodeURIComponent(tipo)}`);
   }
 
-  // Notification API methods
+  // Notification API methods with fallback
   async getNotifications() {
-    return this.request('/notifications');
+    try {
+      const result = await this.request('/notifications');
+      return Array.isArray(result) ? result : [];
+    } catch (error: any) {
+      console.warn('Error loading notifications, using fallback:', error.message);
+      // Si es error de Hibernate, esperar un poco antes del siguiente intento
+      if (error.message?.includes('ByteBuddyInterceptor')) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      return []; // Retornar array vacío como fallback
+    }
   }
 
   async getNotificationById(id: number) {
@@ -216,9 +273,24 @@ class ApiClient {
   }
 
   async createNotification(notification: any) {
+    // Sanitizar datos de notificación
+    const prioridadLower = notification.prioridad?.toLowerCase();
+    const tipoLower = notification.tipo?.toLowerCase();
+
+    const sanitizedData = {
+      ...notification,
+      // Validar que sean valores permitidos
+      prioridad: ['alta', 'media', 'baja'].includes(prioridadLower)
+        ? prioridadLower
+        : 'media',
+      tipo: ['alert', 'maintenance', 'fuel', 'system', 'quote', 'user', 'vehicle', 'sale'].includes(tipoLower)
+        ? tipoLower
+        : 'system'
+    };
+
     return this.request('/notifications', {
       method: 'POST',
-      body: JSON.stringify(notification),
+      body: JSON.stringify(sanitizedData),
     });
   }
 
@@ -245,8 +317,13 @@ class ApiClient {
   }
 
   async getUnreadNotificationCount() {
-    const response: any = await this.request('/notifications/unread/count');
-    return response.count || 0;
+    try {
+      const response: any = await this.request('/notifications/unread/count');
+      return response.count || 0;
+    } catch (error: any) {
+      console.warn('Error loading unread notification count, using fallback:', error.message);
+      return 0; // Fallback to 0
+    }
   }
 
   async getNotificationStats() {
@@ -312,12 +389,19 @@ class ApiClient {
     });
   }
 
-  // Legacy file upload method (mantener para usuarios)
-  async uploadImage(file: File): Promise<string> {
+  // Cloudinary Image Upload Methods with validation
+  async uploadImageToCloudinary(file: File, type: 'vehicle' | 'avatar' | 'user' | 'document' | 'general' = 'general'): Promise<any> {
+    // Validar configuración de Cloudinary
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+    if (!cloudName || cloudName === 'dqkdflqyp') {
+      throw new Error('Cloudinary no está configurado correctamente');
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
-    const url = `${this.baseURL}/upload`;
+    const url = `${this.baseURL}/upload?type=${type}`;
 
     try {
       const response = await fetch(url, {
@@ -329,9 +413,7 @@ class ApiClient {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          } else if (errorData.message) {
+          if (errorData.message) {
             errorMessage = errorData.message;
           }
         } catch (e) {
@@ -341,11 +423,170 @@ class ApiClient {
       }
 
       const result = await response.json();
-      return result.url || result.path || result.filename;
+      return result;
     } catch (error) {
-      console.error('Image upload failed:', error);
+      console.error('Cloudinary image upload failed:', error);
       throw error;
     }
+  }
+
+  async deleteImageFromCloudinary(imageUrl: string): Promise<any> {
+    const url = `${this.baseURL}/upload?imageUrl=${encodeURIComponent(imageUrl)}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Cloudinary image delete failed:', error);
+      throw error;
+    }
+  }
+
+  async getOptimizedImageUrls(imageUrl: string): Promise<any> {
+    const url = `${this.baseURL}/upload/optimize?imageUrl=${encodeURIComponent(imageUrl)}`;
+
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Get optimized URLs failed:', error);
+      throw error;
+    }
+  }
+
+  // User Avatar Methods with validation
+  async uploadUserAvatar(userId: number, file: File): Promise<any> {
+    // Validar configuración de Cloudinary
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+    if (!cloudName || cloudName === 'dqkdflqyp') {
+      throw new Error('Error al subir avatar: Invalid cloud_name ' + cloudName);
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${this.baseURL}/users/${userId}/avatar`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        throw new Error(`Error al subir avatar: ${errorMessage}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('User avatar upload failed:', error);
+      throw error;
+    }
+  }
+
+  async deleteUserAvatar(userId: number): Promise<any> {
+    const url = `${this.baseURL}/users/${userId}/avatar`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('User avatar delete failed:', error);
+      throw error;
+    }
+  }
+
+  async getUserAvatarInfo(userId: number): Promise<any> {
+    const url = `${this.baseURL}/users/${userId}/avatar/info`;
+
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Get user avatar info failed:', error);
+      throw error;
+    }
+  }
+
+  async getUserAvatarOptimizedUrls(userId: number): Promise<any> {
+    const url = `${this.baseURL}/users/${userId}/avatar/optimize`;
+
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Get user avatar optimized URLs failed:', error);
+      throw error;
+    }
+  }
+
+  // Legacy file upload method (mantener para compatibilidad)
+  async uploadImage(file: File): Promise<string> {
+    const result = await this.uploadImageToCloudinary(file, 'general');
+    return result.url;
   }
 
   // Health check

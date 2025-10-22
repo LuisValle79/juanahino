@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,66 +10,40 @@ import {
   TrendingUp,
   Users,
   Bell,
-  Settings,
-  LogOut,
-  Menu,
-  Search,
   Filter,
   Download,
-  Eye,
-  BarChart3,
-  PieChart,
-  ShoppingCart,
-  DollarSign,
-  Target,
   UserPlus,
   Package,
-  FileText,
-  Phone,
-  MapPin,
+  MessageSquare,
+  Activity,
 } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Link from "next/link"
+import { useVehicleStats, useUserStats, useQuoteStats, useUnreadNotificationCount } from "@/hooks/useApi"
+import { LoadingSkeleton } from "@/components/ui/loading"
+import NotificationIndicator from "@/components/NotificationIndicator"
+import ConnectionStatus from "@/components/ConnectionStatus"
 
 export default function DashboardPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("7d")
-  
-  const handleLogout = () => {
-    document.cookie = `auth-token=; path=/; max-age=0; SameSite=Lax`
-    window.location.href = '/'
+  // Hooks para obtener datos de las APIs
+  const { data: vehicleStats, loading: vehicleStatsLoading, error: vehicleStatsError } = useVehicleStats()
+  const { data: userStats, loading: userStatsLoading } = useUserStats()
+  const { data: quoteStats, loading: quoteStatsLoading } = useQuoteStats()
+  const { data: unreadCount } = useUnreadNotificationCount()
+
+  // Calcular estadísticas basadas en datos reales de la API
+  const dashboardStats = {
+    totalVehicles: (vehicleStats && typeof vehicleStats === 'object' && 'total' in vehicleStats) ? vehicleStats.total : 0,
+    availableVehicles: (vehicleStats && typeof vehicleStats === 'object') ? 
+      (vehicleStats.disponible || vehicleStats.available || 0) : 0,
+    reservedVehicles: (vehicleStats && typeof vehicleStats === 'object' && 'reservado' in vehicleStats) ? vehicleStats.reservado : 0,
+    soldVehicles: (vehicleStats && typeof vehicleStats === 'object' && 'vendido' in vehicleStats) ? vehicleStats.vendido : 0,
+    totalUsers: (userStats && typeof userStats === 'object' && 'total' in userStats) ? userStats.total : 0,
+    activeAdvisors: (userStats && typeof userStats === 'object' && 'activeAdvisors' in userStats) ? userStats.activeAdvisors : 0,
+    totalQuotes: (quoteStats && typeof quoteStats === 'object' && 'total' in quoteStats) ? quoteStats.total : 0,
+    pendingQuotes: (quoteStats && typeof quoteStats === 'object' && 'pendiente' in quoteStats) ? quoteStats.pendiente : 0,
+    completedQuotes: (quoteStats && typeof quoteStats === 'object' && 'completada' in quoteStats) ? quoteStats.completada : 0,
+    unreadNotifications: unreadCount || 0,
   }
-
-  const salesStats = {
-    totalSales: 89,
-    monthlyRevenue: 2450000,
-    activeLeads: 156,
-    inventory: 47,
-    conversionRate: 23.5,
-  }
-
-  const recentAlerts = [
-    { id: 1, type: "Lead Caliente", client: "Transportes Lima SAC", priority: "high", time: "5 min ago" },
-    { id: 2, type: "Cotización Vencida", client: "Logística del Sur", priority: "medium", time: "1 hora ago" },
-    { id: 3, type: "Seguimiento Pendiente", client: "Cargo Express", priority: "low", time: "2 horas ago" },
-    { id: 4, type: "Visita Programada", client: "Transporte Nacional", priority: "high", time: "3 horas ago" },
-  ]
-
-  const topSellers = [
-    { id: "Carlos Mendoza", sales: 12, revenue: 420000, region: "Lima Norte" },
-    { id: "Ana García", sales: 10, revenue: 380000, region: "Callao" },
-    { id: "Roberto Silva", sales: 8, revenue: 290000, region: "Lima Sur" },
-    { id: "María López", sales: 7, revenue: 245000, region: "Lima Este" },
-  ]
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -80,6 +54,8 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Resumen de ventas y gestión comercial HINO</p>
         </div>
         <div className="flex items-center space-x-2">
+          <ConnectionStatus showText={false} />
+          <NotificationIndicator />
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Exportar
@@ -95,36 +71,60 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventas del Mes</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Vehículos</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{salesStats.totalSales}</div>
-            <p className="text-xs text-muted-foreground">+18% vs mes anterior</p>
+            {vehicleStatsLoading ? (
+              <LoadingSkeleton lines={2} />
+            ) : vehicleStatsError ? (
+              <div className="text-sm text-destructive">Error al cargar</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-primary">{dashboardStats.totalVehicles}</div>
+                <p className="text-xs text-muted-foreground">
+                  {dashboardStats.availableVehicles} disponibles
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos Mensuales</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Cotizaciones</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              S/ {(salesStats.monthlyRevenue / 1000).toFixed(0)}K
-            </div>
-            <p className="text-xs text-muted-foreground">Meta: S/ 2.8M</p>
+            {quoteStatsLoading ? (
+              <LoadingSkeleton lines={2} />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-600">{dashboardStats.totalQuotes}</div>
+                <p className="text-xs text-muted-foreground">
+                  {dashboardStats.pendingQuotes} pendientes
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Leads Activos</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Usuarios</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{salesStats.activeLeads}</div>
-            <p className="text-xs text-muted-foreground">+24 nuevos esta semana</p>
+            {userStatsLoading ? (
+              <LoadingSkeleton lines={2} />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-blue-600">{dashboardStats.totalUsers}</div>
+                <p className="text-xs text-muted-foreground">
+                  {dashboardStats.activeAdvisors} asesores activos
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -134,19 +134,25 @@ export default function DashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{salesStats.inventory}</div>
-            <p className="text-xs text-muted-foreground">Unidades disponibles</p>
+            {vehicleStatsLoading ? (
+              <LoadingSkeleton lines={2} />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-amber-600">{dashboardStats.availableVehicles}</div>
+                <p className="text-xs text-muted-foreground">Unidades disponibles</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-purple-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversión</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Notificaciones</CardTitle>
+            <Bell className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{salesStats.conversionRate}%</div>
-            <p className="text-xs text-muted-foreground">Leads a ventas</p>
+            <div className="text-2xl font-bold text-purple-600">{dashboardStats.unreadNotifications}</div>
+            <p className="text-xs text-muted-foreground">Sin leer</p>
           </CardContent>
         </Card>
       </div>
@@ -173,22 +179,22 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Meta Mensual</span>
-                  <span className="text-2xl font-bold text-primary">89/120</span>
+                  <span className="text-sm font-medium">Vehículos Totales</span>
+                  <span className="text-2xl font-bold text-primary">{dashboardStats.totalVehicles}</span>
                 </div>
-                <Progress value={(salesStats.totalSales / 120) * 100} className="h-3" />
+                <Progress value={(dashboardStats.totalVehicles / 120) * 100} className="h-3" />
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-lg font-semibold text-green-600">Camiones</div>
-                    <div className="text-sm text-muted-foreground">67 vendidos</div>
+                    <div className="text-lg font-semibold text-green-600">Disponibles</div>
+                    <div className="text-sm text-muted-foreground">{dashboardStats.availableVehicles} unidades</div>
                   </div>
                   <div>
-                    <div className="text-lg font-semibold text-blue-600">Buses</div>
-                    <div className="text-sm text-muted-foreground">22 vendidos</div>
+                    <div className="text-lg font-semibold text-blue-600">Cotizaciones</div>
+                    <div className="text-sm text-muted-foreground">{dashboardStats.totalQuotes} solicitudes</div>
                   </div>
                   <div>
                     <div className="text-lg font-semibold text-amber-600">Pendientes</div>
-                    <div className="text-sm text-muted-foreground">31 unidades</div>
+                    <div className="text-sm text-muted-foreground">{dashboardStats.pendingQuotes} cotizaciones</div>
                   </div>
                 </div>
               </div>
@@ -197,33 +203,25 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Vendedores del Mes</CardTitle>
-              <CardDescription>Mejores resultados por región</CardDescription>
+              <CardTitle>Resumen del Sistema</CardTitle>
+              <CardDescription>Estado actual de usuarios y recursos</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topSellers.map((seller, index) => (
-                  <div key={seller.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold text-sm">
-                        #{index + 1}
-                      </div>
-                      <div>
-                        <div className="font-medium">{seller.id}</div>
-                        <div className="text-sm text-muted-foreground flex items-center">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {seller.region}
-                        </div>
-                      </div>
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Estadísticas de Usuarios</h3>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.totalUsers}</div>
+                      <div className="text-sm text-muted-foreground">Total Usuarios</div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-right">
-                        <div className="font-semibold text-primary">{seller.sales} ventas</div>
-                        <div className="text-xs text-muted-foreground">S/ {(seller.revenue / 1000).toFixed(0)}K</div>
-                      </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{dashboardStats.activeAdvisors}</div>
+                      <div className="text-sm text-muted-foreground">Asesores Activos</div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -231,58 +229,25 @@ export default function DashboardPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Recent Alerts */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Alertas de Ventas</CardTitle>
-                <Button variant="ghost" size="sm">
-                  <Eye className="w-4 h-4 mr-1" />
-                  Ver todas
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-start space-x-3 p-3 rounded-lg border">
-                  <div
-                    className={`w-2 h-2 rounded-full mt-2 ${
-                      alert.priority === "high"
-                        ? "bg-red-500"
-                        : alert.priority === "medium"
-                          ? "bg-amber-500"
-                          : "bg-blue-500"
-                    }`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm">{alert.type}</div>
-                    <div className="text-sm text-muted-foreground">{alert.client}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{alert.time}</div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
           {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href="/leads/new">
+              <Link href="/users/add">
                 <Button className="w-full justify-start bg-transparent" variant="outline">
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Nuevo Lead
+                  Nuevo Usuario
                 </Button>
               </Link>
-              <Link href="/quotes/create">
+              <Link href="/fleet/add">
                 <Button className="w-full justify-start bg-transparent" variant="outline">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Crear Cotización
+                  <Truck className="w-4 h-4 mr-2" />
+                  Agregar Vehículo
                 </Button>
               </Link>
-              <Link href="/fleet">
+              <Link href="/vehicles">
                 <Button className="w-full justify-start bg-transparent" variant="outline">
                   <Package className="w-4 h-4 mr-2" />
                   Gestionar Flota
@@ -290,8 +255,14 @@ export default function DashboardPage() {
               </Link>
               <Link href="/quotes">
                 <Button className="w-full justify-start bg-transparent" variant="outline">
-                  <Phone className="w-4 h-4 mr-2" />
+                  <MessageSquare className="w-4 h-4 mr-2" />
                   Ver Cotizaciones
+                </Button>
+              </Link>
+              <Link href="/users">
+                <Button className="w-full justify-start bg-transparent" variant="outline">
+                  <Users className="w-4 h-4 mr-2" />
+                  Gestionar Usuarios
                 </Button>
               </Link>
             </CardContent>
@@ -300,23 +271,33 @@ export default function DashboardPage() {
           {/* System Status */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Estado del Sistema</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Estado del Sistema
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Conectividad</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-green-600">Excelente</span>
-                </div>
+                <span className="text-sm">Backend</span>
+                <ConnectionStatus showText={true} />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Última Sincronización</span>
-                <span className="text-sm text-muted-foreground">Hace 1 min</span>
+                <span className="text-sm">Vehículos Disponibles</span>
+                <span className="text-sm font-medium text-green-600">
+                  {dashboardStats.availableVehicles}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Cotizaciones Pendientes</span>
-                <span className="text-sm font-medium text-amber-600">2</span>
+                <span className="text-sm font-medium text-amber-600">
+                  {dashboardStats.pendingQuotes}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Notificaciones</span>
+                <span className="text-sm font-medium text-purple-600">
+                  {dashboardStats.unreadNotifications} sin leer
+                </span>
               </div>
             </CardContent>
           </Card>

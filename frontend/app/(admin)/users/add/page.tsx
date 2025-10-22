@@ -19,6 +19,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole, UserStatus } from "@/types/user"
+import { UserAvatarManager } from "@/components/UserAvatarManager"
 
 export default function AddUserPage() {
   const router = useRouter()
@@ -34,44 +35,12 @@ export default function AddUserPage() {
     password: "",
     confirmPassword: "",
   })
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createdUserId, setCreatedUserId] = useState<number | null>(null)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const removeImage = () => {
-    setImagePreview(null)
-    setImageFile(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-  }
-
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return null
-
-    try {
-      setIsUploading(true)
-      // Por ahora, retornamos una URL de placeholder
-      // TODO: Implementar upload real cuando el endpoint esté listo
-      return "/placeholder-user.jpg"
-    } catch (error) {
-      console.error("Error uploading image:", error)
-      return "/placeholder-user.jpg"
-    } finally {
-      setIsUploading(false)
-    }
+  const handleAvatarChange = (newAvatarUrl: string) => {
+    setAvatarUrl(newAvatarUrl)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,14 +65,9 @@ export default function AddUserPage() {
       return
     }
 
-    try {
-      // Upload image first if exists
-      let imageUrl = null
-      if (imageFile) {
-        imageUrl = await uploadImage()
-        if (!imageUrl) return
-      }
+    setIsSubmitting(true)
 
+    try {
       const userData = {
         nombre: formData.nombre,
         email: formData.email,
@@ -111,19 +75,26 @@ export default function AddUserPage() {
         rol: formData.rol as UserRole,
         especialidad: formData.especialidad || "",
         estado: (formData.estado || "activo") as UserStatus,
-        password_hash: formData.password,
-        avatar_url: imageUrl || undefined,
+        passwordHash: formData.password,
+        avatarUrl: avatarUrl || undefined,
         ventas: 0,
-        fecha_ingreso: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+        fechaIngreso: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
       }
+
+      console.log('💾 Creando usuario con avatar de Cloudinary:', userData)
 
       const data = await apiClient.createUser(userData)
 
-      // El backend Spring Boot devuelve directamente el objeto User
+      // Guardar el ID del usuario creado para poder subir avatar después
+      if (data && data.id) {
+        setCreatedUserId(data.id)
+      }
+
       toast({
         title: "Usuario creado",
-        description: `${formData.nombre} ha sido agregado exitosamente.`,
+        description: `${formData.nombre} ha sido agregado exitosamente con avatar de Cloudinary.`,
       })
+      
       router.push("/users")
     } catch (error) {
       console.error("Error creating user:", error)
@@ -132,6 +103,8 @@ export default function AddUserPage() {
         description: "No se pudo crear el usuario. Por favor inténtalo de nuevo.",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -339,66 +312,27 @@ export default function AddUserPage() {
               </CardContent>
             </Card>
 
-            {/* ✅ Foto de Perfil corregida */}
+            {/* Avatar con Cloudinary */}
             <Card>
               <CardHeader>
-                <CardTitle>Foto de Perfil</CardTitle>
+                <CardTitle>Avatar del Usuario</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Sube un avatar que se almacenará en Cloudinary con optimización automática
+                </p>
               </CardHeader>
               <CardContent>
-                <div
-                  className="border-2 border-dashed rounded-lg p-8 text-center"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    const file = e.dataTransfer.files?.[0]
-                    if (file) handleImageChange({ target: { files: [file] } } as any)
-                  }}
-                >
-                  {imagePreview ? (
-                    <div className="relative inline-block">
-                      <img
-                        src={imagePreview}
-                        alt="Vista previa"
-                        className="max-h-48 rounded-lg object-contain"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 rounded-full"
-                        onClick={removeImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                  <div className="space-y-4">
+                    <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        El avatar se podrá subir después de crear el usuario
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        ☁️ Se almacenará en Cloudinary con múltiples tamaños optimizados
+                      </p>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Arrastra y suelta una imagen aquí, o haz clic para
-                          seleccionar
-                        </p>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageChange}
-                          disabled={isUploading}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isUploading}
-                        >
-                          {isUploading ? "Subiendo..." : "Seleccionar Imagen"}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -410,8 +344,8 @@ export default function AddUserPage() {
                   Cancelar
                 </Button>
               </Link>
-              <Button type="submit" disabled={isUploading}>
-                {isUploading ? (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
                   "Creando usuario..."
                 ) : (
                   <>

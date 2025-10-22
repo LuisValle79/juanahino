@@ -1,97 +1,97 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Truck, Bus, Search, Filter } from "lucide-react"
+import { Truck, Bus, Search, Filter, Eye, Calendar, Fuel, Gauge } from "lucide-react"
 import { Vehicle } from "@/types/vehicle"
 import { apiClient } from "@/lib/api"
 import { BackendImage } from "@/components/BackendImage"
+import VehicleService from "@/lib/services/vehicleService"
 
 export default function CatalogoPage() {
-  const [vehiculos, setVehiculos] = useState<Vehicle[]>([])
+  const searchParams = useSearchParams()
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filtroTipo, setFiltroTipo] = useState<string>("todos")
-  const [filtroCategoria, setFiltroCategoria] = useState<string>("todos")
-  const [busqueda, setBusqueda] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('tipo') || "all")
+  const [statusFilter, setStatusFilter] = useState("disponible")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [priceRange, setPriceRange] = useState("all")
 
-  // Load vehicles from backend API
   useEffect(() => {
-    const loadVehicles = async () => {
+    const fetchVehicles = async () => {
       try {
         setLoading(true)
-        
-        // Fetch real data from backend API
-        const data = await apiClient.getVehicles()
-        setVehiculos(data)
         setError(null)
-      } catch (error) {
-        console.error("Error loading vehicles:", error)
         
-        // Fallback to mock data if API fails
-        const mockVehicles = [
-          {
-            id: 1,
-            modelo: "HINO Serie 300",
-            tipo: "camion" as const,
-            categoria: "Ligero",
-            precio: 45000.00,
-            capacidad: "3.5 - 5 toneladas",
-            motor: "4.0L Diesel",
-            año: 2025,
-            estado: "disponible" as const,
-            stock: 8,
-            imagen_url: "/hino-300-series-white-truck.jpg",
-            descripcion: "Ideal para distribución urbana y transporte ligero",
-            created_at: new Date(),
-            updated_at: new Date()
-          },
-          {
-            id: 2,
-            modelo: "HINO Serie 500",
-            tipo: "camion" as const,
-            categoria: "Mediano",
-            precio: 75000.00,
-            capacidad: "8 - 12 toneladas",
-            motor: "7.7L Diesel",
-            año: 2025,
-            estado: "disponible" as const,
-            stock: 12,
-            imagen_url: "/hino-500-series-red-truck.jpg",
-            descripción: "Potencia y eficiencia para tu negocio",
-            created_at: new Date(),
-            updated_at: new Date()
-          }
-        ];
-        
-        setVehiculos(mockVehicles)
-        setError("Usando datos de ejemplo (backend no disponible)")
+        // Fetch vehicles from API
+        const data = await apiClient.getVehicles()
+        setVehicles(data as Vehicle[])
+      } catch (err) {
+        console.error('Error fetching vehicles from API:', err)
+        setError("No se pudieron cargar los vehículos. El servicio no está disponible.")
       } finally {
         setLoading(false)
       }
     }
 
-    loadVehicles()
+    fetchVehicles()
   }, [])
 
-  const vehiculosFiltrados = vehiculos.filter((vehiculo) => {
-    const cumpleTipo = filtroTipo === "todos" || vehiculo.tipo === filtroTipo
-    const cumpleCategoria = filtroCategoria === "todos" || vehiculo.categoria === filtroCategoria
-    const cumpleBusqueda = vehiculo.modelo.toLowerCase().includes(busqueda.toLowerCase())
-    return cumpleTipo && cumpleCategoria && cumpleBusqueda
+  // Filter vehicles based on search and filters
+  const filteredVehicles = vehicles.filter((vehicle) => {
+    const matchesSearch = 
+      vehicle.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesType = typeFilter === "all" || vehicle.tipo === typeFilter
+    const matchesStatus = statusFilter === "all" || vehicle.estado === statusFilter
+    const matchesCategory = categoryFilter === "all" || vehicle.categoria.toLowerCase().includes(categoryFilter.toLowerCase())
+    
+    let matchesPrice = true
+    if (priceRange !== "all") {
+      const [min, max] = priceRange.split("-").map(Number)
+      matchesPrice = vehicle.precio >= min && (max ? vehicle.precio <= max : true)
+    }
+    
+    return matchesSearch && matchesType && matchesStatus && matchesCategory && matchesPrice
   })
+
+  const getStatusBadge = (status: string) => {
+    const statusText = VehicleService.getStatusText(status)
+    const statusColor = VehicleService.getStatusColor(status)
+    
+    return <Badge className={statusColor}>{statusText}</Badge>
+  }
+
+  const formatPrice = VehicleService.formatPrice
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando catálogo de vehículos...</p>
+      <div className="min-h-screen bg-background">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Catálogo de Vehículos</h1>
+            <p className="text-xl max-w-2xl mx-auto">
+              Descubre nuestra amplia gama de camiones y buses comerciales HINO
+            </p>
+          </div>
+        </section>
+
+        <div className="container mx-auto px-4 py-16">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mr-4"></div>
+            <p className="text-lg">Cargando vehículos...</p>
+          </div>
         </div>
       </div>
     )
@@ -99,12 +99,25 @@ export default function CatalogoPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
-            Intentar nuevamente
-          </Button>
+      <div className="min-h-screen bg-background">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Catálogo de Vehículos</h1>
+            <p className="text-xl max-w-2xl mx-auto">
+              Descubre nuestra amplia gama de camiones y buses comerciales HINO
+            </p>
+          </div>
+        </section>
+
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Error al cargar el catálogo</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Reintentar
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -116,52 +129,82 @@ export default function CatalogoPage() {
       <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Catálogo de Vehículos</h1>
-          <p className="text-xl max-w-2xl mx-auto">Explora nuestra amplia gama de camiones y buses comerciales</p>
+          <p className="text-xl max-w-2xl mx-auto">
+            Descubre nuestra amplia gama de camiones y buses comerciales HINO
+          </p>
         </div>
       </section>
 
       {/* Filters Section */}
-      <section className="py-8 border-b bg-muted/30">
+      <section className="py-8 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar vehículo..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar vehículos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
 
-            <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Tipo" />
+            {/* Type Filter */}
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo de vehículo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos los tipos</SelectItem>
+                <SelectItem value="all">Todos los tipos</SelectItem>
                 <SelectItem value="camion">Camiones</SelectItem>
                 <SelectItem value="bus">Buses</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-              <SelectTrigger className="w-full md:w-[200px]">
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="disponible">Disponible</SelectItem>
+                <SelectItem value="reservado">Reservado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Category Filter */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger>
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todas las categorías</SelectItem>
-                <SelectItem value="Ligero">Ligero</SelectItem>
-                <SelectItem value="Mediano">Mediano</SelectItem>
-                <SelectItem value="Pesado">Pesado</SelectItem>
-                <SelectItem value="Urbano">Urbano</SelectItem>
-                <SelectItem value="Interurbano">Interurbano</SelectItem>
-                <SelectItem value="Premium">Premium</SelectItem>
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                <SelectItem value="liviano">Liviano</SelectItem>
+                <SelectItem value="mediano">Mediano</SelectItem>
+                <SelectItem value="pesado">Pesado</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Price Range Filter */}
+            <Select value={priceRange} onValueChange={setPriceRange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Rango de precio" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los precios</SelectItem>
+                <SelectItem value="0-50000">Hasta $50,000</SelectItem>
+                <SelectItem value="50000-100000">$50,000 - $100,000</SelectItem>
+                <SelectItem value="100000-200000">$100,000 - $200,000</SelectItem>
+                <SelectItem value="200000">Más de $200,000</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Results count */}
+          <div className="mt-4 text-sm text-muted-foreground">
+            Mostrando {filteredVehicles.length} de {vehicles.length} vehículos
           </div>
         </div>
       </section>
@@ -169,87 +212,131 @@ export default function CatalogoPage() {
       {/* Vehicles Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-muted-foreground">
-              Mostrando {vehiculosFiltrados.length} de {vehiculos.length} vehículos
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vehiculosFiltrados.map((vehiculo) => (
-              <Card key={vehiculo.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <BackendImage
-                    src={vehiculo.imagenUrl || vehiculo.imagen_url}
-                    alt={vehiculo.modelo}
-                    className="w-full h-full object-cover"
-                    fallback="/placeholder.svg"
-                  />
-                  <div className="absolute top-2 right-2">
-                    {vehiculo.estado === "disponible" ? (
-                      <Badge className="bg-green-500">Disponible</Badge>
-                    ) : vehiculo.estado === "reservado" ? (
-                      <Badge className="bg-amber-500">Reservado</Badge>
-                    ) : (
-                      <Badge variant="secondary">Vendido</Badge>
-                    )}
-                  </div>
-                  <div className="absolute top-2 left-2">
-                    {vehiculo.tipo === "camion" ? (
-                      <div className="bg-white/90 backdrop-blur p-2 rounded">
-                        <Truck className="h-5 w-5 text-primary" />
-                      </div>
-                    ) : (
-                      <div className="bg-white/90 backdrop-blur p-2 rounded">
-                        <Bus className="h-5 w-5 text-primary" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <CardContent className="pt-4">
-                  <h3 className="text-xl font-bold mb-2">{vehiculo.modelo}</h3>
-                  <Badge variant="outline" className="mb-3">
-                    {vehiculo.categoria}
-                  </Badge>
-
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>Capacidad:</span>
-                      <span className="font-medium text-foreground">{vehiculo.capacidad}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Motor:</span>
-                      <span className="font-medium text-foreground">{vehiculo.motor}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-2xl font-bold text-primary">${vehiculo.precio.toLocaleString()}</p>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="flex gap-2">
-                  <Link href={`/public/catalogo/${vehiculo.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full bg-transparent">
-                      Ver Detalles
-                    </Button>
-                  </Link>
-                  <Link href="/public/contacto" className="flex-1">
-                    <Button className="w-full">Cotizar</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-
-          {vehiculosFiltrados.length === 0 && (
+          {filteredVehicles.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground text-lg">
-                No se encontraron vehículos con los filtros seleccionados.
+              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-12 h-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No se encontraron vehículos</h3>
+              <p className="text-muted-foreground mb-4">
+                Intenta ajustar los filtros para encontrar lo que buscas
               </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("")
+                  setTypeFilter("all")
+                  setStatusFilter("disponible")
+                  setCategoryFilter("all")
+                  setPriceRange("all")
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredVehicles.map((vehicle) => (
+                <Card key={vehicle.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
+                  <div className="relative h-48 overflow-hidden">
+                    <BackendImage
+                      src={vehicle.imagenUrl || vehicle.imagen_url}
+                      alt={vehicle.modelo}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fallback="/placeholder.svg"
+                    />
+                    <div className="absolute top-2 right-2">
+                      {getStatusBadge(vehicle.estado)}
+                    </div>
+                    <div className="absolute top-2 left-2">
+                      <Badge variant="outline" className="bg-white/90">
+                        {vehicle.tipo === "camion" ? (
+                          <><Truck className="w-3 h-3 mr-1" />Camión</>
+                        ) : (
+                          <><Bus className="w-3 h-3 mr-1" />Bus</>
+                        )}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-bold mb-1 line-clamp-1">{vehicle.modelo}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{vehicle.categoria}</p>
+                    
+                    <div className="text-2xl font-bold text-primary mb-3">
+                      {formatPrice(vehicle.precio)}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground mb-4">
+                      <div className="flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {vehicle.año}
+                      </div>
+                      <div className="flex items-center">
+                        <Fuel className="w-3 h-3 mr-1" />
+                        {vehicle.motor}
+                      </div>
+                      <div className="flex items-center">
+                        <Gauge className="w-3 h-3 mr-1" />
+                        {vehicle.capacidad}
+                      </div>
+                    </div>
+
+                    {vehicle.descripcion && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                        {vehicle.descripcion}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Stock: {vehicle.stock}</span>
+                      {vehicle.estado === "disponible" && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Disponible
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="p-4 pt-0 space-y-2">
+                    <Link href={`/public/catalogo/${vehicle.id}`} className="w-full">
+                      <Button className="w-full">
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Detalles
+                      </Button>
+                    </Link>
+                    <Link href={`/public/contacto?vehiculo=${vehicle.id}`} className="w-full">
+                      <Button variant="outline" className="w-full">
+                        Solicitar Cotización
+                      </Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-primary text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">¿No encuentras lo que buscas?</h2>
+          <p className="text-xl mb-6 max-w-2xl mx-auto">
+            Nuestros asesores especializados pueden ayudarte a encontrar el vehículo perfecto para tu negocio
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/public/contacto">
+              <Button size="lg" variant="secondary">
+                Contactar Asesor
+              </Button>
+            </Link>
+            <Link href="/public/asesores">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
+                Ver Asesores
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
     </div>

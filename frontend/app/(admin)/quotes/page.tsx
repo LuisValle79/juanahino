@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { apiClient } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  FileText,
+  MessageSquare,
   Search,
   Filter,
   MoreVertical,
@@ -34,133 +33,81 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  BarChart,
+  AlertCircle,
+  RefreshCw,
+  Plus,
+  ArrowLeft,
+  Edit,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
-import { Quote } from "@/types/quote-client"
+import { useQuotes, useActiveAdvisors } from "@/hooks/useApi"
+import QuoteService, { Quote } from "@/lib/services/quoteService"
+import UserService from "@/lib/services/userService"
+import { User } from "@/types/user"
+
 
 export default function QuotesManagementPage() {
   const { toast } = useToast()
-  const [cotizaciones, setCotizaciones] = useState<Quote[]>([])
-  const [loading, setLoading] = useState(true)
-  const [busqueda, setBusqueda] = useState("")
-  const [filtroEstado, setFiltroEstado] = useState<string>("todos")
-  const [filtroPrioridad, setFiltroPrioridad] = useState<string>("todos")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [priorityFilter, setPriorityFilter] = useState("all")
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
-  const [stats, setStats] = useState({
-    total: 0,
-    pendiente: 0,
-    enProceso: 0,
-    enviada: 0,
-    cerrada: 0,
-    unassigned: 0
-  })
+  const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null)
+  const [selectedAdvisor, setSelectedAdvisor] = useState<string>("")
 
-  // Load quotes and stats from API
-  useEffect(() => {
-    const loadQuotesAndStats = async () => {
+  // Usar hooks para obtener datos de las APIs
+  const { data: quotes, loading: quotesLoading, error: quotesError, refetch: refetchQuotes } = useQuotes()
+  const { data: advisors, loading: advisorsLoading } = useActiveAdvisors()
+
+  // Filtrar cotizaciones basado en búsqueda y filtros
+  const filteredQuotes = quotes?.filter((quote: Quote) => {
+    const matchesSearch =
+      quote.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quote.clienteEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quote.tipoVehiculo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quote.mensaje.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || quote.estado === statusFilter
+    const matchesPriority = priorityFilter === "all" || quote.prioridad === priorityFilter
+    return matchesSearch && matchesStatus && matchesPriority
+  }) || []
+
+  // Manejar asignación de asesor
+  const handleAssignAdvisor = async () => {
+    if (selectedQuote && selectedAdvisor) {
       try {
-        // Load quotes
-        const quotes = await apiClient.getQuotes()
-        setCotizaciones(quotes as Quote[])
-        
-        // Load stats
-        const statsData: any = await apiClient.getQuoteStats()
-        setStats({
-          total: statsData.total || 0,
-          pendiente: statsData.pendientes || 0,
-          enProceso: statsData.enProceso || 0,
-          enviada: statsData.enviadas || 0,
-          cerrada: statsData.cerradas || 0,
-          unassigned: statsData.unassigned || 0
+        await QuoteService.assignAdvisor(selectedQuote.id, parseInt(selectedAdvisor))
+        await refetchQuotes()
+        toast({
+          title: "Asesor asignado",
+          description: `Se asignó el asesor a la cotización de ${selectedQuote.clienteNombre}`,
         })
+        setAssignDialogOpen(false)
+        setSelectedQuote(null)
+        setSelectedAdvisor("")
       } catch (error) {
         toast({
           title: "Error",
-          description: "No se pudieron cargar las cotizaciones",
+          description: "No se pudo asignar el asesor",
           variant: "destructive",
         })
-        console.error("Error loading quotes:", error)
-      } finally {
-        setLoading(false)
+        console.error("Error assigning advisor:", error)
       }
-    }
-
-    loadQuotesAndStats()
-  }, [])
-
-  const cotizacionesFiltradas = cotizaciones.filter((cotizacion) => {
-    const cumpleBusqueda =
-      (cotizacion.cliente_nombre?.toLowerCase().includes(busqueda.toLowerCase()) || false) ||
-      (cotizacion.empresa?.toLowerCase().includes(busqueda.toLowerCase()) || false) ||
-      (cotizacion.tipo_vehiculo?.toLowerCase().includes(busqueda.toLowerCase()) || false)
-    const cumpleEstado = filtroEstado === "todos" || cotizacion.estado === filtroEstado
-    const cumplePrioridad = filtroPrioridad === "todos" || cotizacion.prioridad === filtroPrioridad
-    return cumpleBusqueda && cumpleEstado && cumplePrioridad
-  })
-
-  const handleAsignarAsesor = async (cotizacionId: number) => {
-    try {
-      await apiClient.assignAdvisor(cotizacionId, 1) // In a real implementation, you would use the current user ID
-      
-      // Update the quote in the local state
-      setCotizaciones(
-        cotizaciones.map((c) =>
-          c.id === cotizacionId ? { ...c, asesor_asignado_id: 1, estado: 'en-proceso' } : c
-        )
-      )
-      
-      // Update stats
-      setStats(prev => ({
-        ...prev,
-        unassigned: prev.unassigned - 1,
-        enProceso: prev.enProceso + 1
-      }))
-      
-      toast({
-        title: "Asesor asignado",
-        description: "La cotización ha sido asignada exitosamente.",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo asignar el asesor",
-        variant: "destructive",
-      })
-      console.error("Error assigning advisor:", error)
     }
   }
 
-  const handleCambiarEstado = async (cotizacionId: number, nuevoEstado: string) => {
+  // Manejar cambio de estado
+  const handleChangeStatus = async (quoteId: number, newStatus: string) => {
     try {
-      const updatedQuote: any = await apiClient.updateQuote(cotizacionId, { estado: nuevoEstado })
-      setCotizaciones(cotizaciones.map((c) => (c.id === cotizacionId ? updatedQuote : c)) as Quote[])
-      
-      // Update stats
-      setStats(prev => {
-        const newState = { ...prev }
-        // Decrease count of previous state
-        switch (cotizaciones.find(c => c.id === cotizacionId)?.estado) {
-          case 'pendiente': newState.pendiente--; break
-          case 'en-proceso': newState.enProceso--; break
-          case 'enviada': newState.enviada--; break
-          case 'cerrada': newState.cerrada--; break
-        }
-        // Increase count of new state
-        switch (nuevoEstado) {
-          case 'pendiente': newState.pendiente++; break
-          case 'en-proceso': newState.enProceso++; break
-          case 'enviada': newState.enviada++; break
-          case 'cerrada': newState.cerrada++; break
-        }
-        return newState
-      })
-      
+      await QuoteService.update(quoteId, { estado: newStatus as any })
+      await refetchQuotes()
       toast({
         title: "Estado actualizado",
-        description: `La cotización ha sido marcada como ${nuevoEstado}.`,
+        description: `La cotización ha sido marcada como ${QuoteService.getStatusText(newStatus)}.`,
       })
     } catch (error) {
       toast({
@@ -172,76 +119,60 @@ export default function QuotesManagementPage() {
     }
   }
 
-  const handleSearch = async () => {
-    if (!busqueda.trim()) {
-      // If search is empty, load all quotes
-      const quotes = await apiClient.getQuotes()
-      setCotizaciones(quotes as any[])
-      return
+  // Manejar eliminación de cotización
+  const handleDeleteQuote = async () => {
+    if (quoteToDelete) {
+      try {
+        await QuoteService.delete(quoteToDelete.id)
+        await refetchQuotes()
+        toast({
+          title: "Cotización eliminada",
+          description: `La cotización de ${quoteToDelete.clienteNombre} ha sido eliminada`,
+        })
+        setDeleteDialogOpen(false)
+        setQuoteToDelete(null)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar la cotización",
+          variant: "destructive",
+        })
+        console.error("Error deleting quote:", error)
+      }
+    }
+  }
+
+  // Usar métodos del servicio para badges
+  const getStatusBadge = (status: string) => {
+    const statusText = QuoteService.getStatusText(status)
+    const statusColor = QuoteService.getStatusColor(status)
+    
+    const icons = {
+      pendiente: Clock,
+      en_proceso: AlertCircle,
+      completada: CheckCircle,
+      cancelada: XCircle
     }
     
-    try {
-      const results = await apiClient.searchQuotes(busqueda)
-      setCotizaciones(results as any[])
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron buscar las cotizaciones",
-        variant: "destructive",
-      })
-      console.error("Error searching quotes:", error)
-    }
+    const Icon = icons[status as keyof typeof icons] || Clock
+    
+    return (
+      <Badge className={statusColor}>
+        <Icon className="h-3 w-3 mr-1" />
+        {statusText}
+      </Badge>
+    )
   }
 
-  const getEstadoBadge = (estado: string) => {
-    switch (estado) {
-      case "pendiente":
-        return (
-          <Badge className="bg-amber-500">
-            <Clock className="h-3 w-3 mr-1" />
-            Pendiente
-          </Badge>
-        )
-      case "en-proceso":
-        return (
-          <Badge className="bg-blue-500">
-            <UserPlus className="h-3 w-3 mr-1" />
-            En Proceso
-          </Badge>
-        )
-      case "enviada":
-        return (
-          <Badge className="bg-green-500">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Enviada
-          </Badge>
-        )
-      case "cerrada":
-        return (
-          <Badge variant="secondary">
-            <XCircle className="h-3 w-3 mr-1" />
-            Cerrada
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">{estado}</Badge>
-    }
+  const getPriorityBadge = (priority: string) => {
+    const priorityText = QuoteService.getPriorityText(priority)
+    const priorityColor = QuoteService.getPriorityColor(priority)
+    
+    return <Badge className={priorityColor}>{priorityText}</Badge>
   }
 
-  const getPrioridadBadge = (prioridad: string) => {
-    switch (prioridad) {
-      case "alta":
-        return <Badge variant="destructive">Alta</Badge>
-      case "media":
-        return <Badge className="bg-amber-500">Media</Badge>
-      case "baja":
-        return <Badge variant="outline">Baja</Badge>
-      default:
-        return <Badge variant="outline">{prioridad}</Badge>
-    }
-  }
-
-  if (loading) {
+  // Estados de carga y error
+  if (quotesLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -252,19 +183,54 @@ export default function QuotesManagementPage() {
     )
   }
 
+  if (quotesError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error al cargar cotizaciones</h3>
+          <p className="text-muted-foreground mb-4">{quotesError}</p>
+          <Button onClick={refetchQuotes}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 bg-primary rounded flex items-center justify-center">
-              <FileText className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 bg-primary rounded flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold">Gestión de Cotizaciones</h1>
+                <p className="text-xs text-muted-foreground">Administrar solicitudes de cotización</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold">Gestión de Cotizaciones</h1>
-              <p className="text-xs text-muted-foreground">Administrar solicitudes de cotización</p>
-            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Button onClick={refetchQuotes} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Cotización
+            </Button>
           </div>
         </div>
       </header>
@@ -275,10 +241,10 @@ export default function QuotesManagementPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Cotizaciones</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold">{quotes?.length || 0}</div>
             </CardContent>
           </Card>
 
@@ -287,8 +253,8 @@ export default function QuotesManagementPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-600">
-                {stats.pendiente}
+              <div className="text-2xl font-bold text-yellow-600">
+                {quotes?.filter((q: Quote) => q.estado === "pendiente").length || 0}
               </div>
             </CardContent>
           </Card>
@@ -299,18 +265,18 @@ export default function QuotesManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {stats.enProceso}
+                {quotes?.filter((q: Quote) => q.estado === "en_proceso").length || 0}
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Enviadas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Completadas</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {stats.enviada}
+                {quotes?.filter((q: Quote) => q.estado === "completada").length || 0}
               </div>
             </CardContent>
           </Card>
@@ -324,46 +290,39 @@ export default function QuotesManagementPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por cliente, empresa o tipo de vehículo..."
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="Buscar por cliente, email o tipo de vehículo..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
               </div>
 
-              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-[200px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  <SelectItem value="all">Todos los estados</SelectItem>
                   <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en-proceso">En Proceso</SelectItem>
-                  <SelectItem value="enviada">Enviada</SelectItem>
-                  <SelectItem value="cerrada">Cerrada</SelectItem>
+                  <SelectItem value="en_proceso">En Proceso</SelectItem>
+                  <SelectItem value="completada">Completada</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={filtroPrioridad} onValueChange={setFiltroPrioridad}>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-full md:w-[200px]">
-                  <BarChart className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos">Todas las prioridades</SelectItem>
+                  <SelectItem value="all">Todas las prioridades</SelectItem>
                   <SelectItem value="alta">Alta</SelectItem>
                   <SelectItem value="media">Media</SelectItem>
                   <SelectItem value="baja">Baja</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Button onClick={handleSearch}>
-                <Search className="h-4 w-4 mr-2" />
-                Buscar
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -371,49 +330,55 @@ export default function QuotesManagementPage() {
         {/* Quotes Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Solicitudes de Cotización ({cotizacionesFiltradas.length})</CardTitle>
+            <CardTitle>Lista de Cotizaciones ({filteredQuotes.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Empresa</TableHead>
                   <TableHead>Vehículo</TableHead>
-                  <TableHead>Prioridad</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Prioridad</TableHead>
                   <TableHead>Asesor</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cotizacionesFiltradas.map((cotizacion) => (
-                  <TableRow key={cotizacion.id}>
+                {filteredQuotes.map((quote: Quote) => (
+                  <TableRow key={quote.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{cotizacion.cliente_nombre}</div>
-                        <div className="text-sm text-muted-foreground">{cotizacion.cliente_email}</div>
+                        <div className="font-medium">{quote.clienteNombre}</div>
+                        <div className="text-sm text-muted-foreground">{quote.clienteEmail}</div>
+                        <div className="text-sm text-muted-foreground">{quote.clienteTelefono}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{cotizacion.empresa || '-'}</TableCell>
-                    <TableCell>{cotizacion.tipo_vehiculo}</TableCell>
-                    <TableCell>{getPrioridadBadge(cotizacion.prioridad)}</TableCell>
-                    <TableCell>{getEstadoBadge(cotizacion.estado)}</TableCell>
                     <TableCell>
-                      {cotizacion.asesor_nombre ? (
-                        <span className="text-sm">{cotizacion.asesor_nombre}</span>
+                      <Badge variant="outline">{QuoteService.getVehicleTypeText(quote.tipoVehiculo)}</Badge>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(quote.estado)}</TableCell>
+                    <TableCell>{getPriorityBadge(quote.prioridad)}</TableCell>
+                    <TableCell>
+                      {quote.asesor ? (
+                        <div className="text-sm">
+                          <div className="font-medium">{quote.asesor.nombre}</div>
+                          <div className="text-muted-foreground">{quote.asesor.email}</div>
+                        </div>
                       ) : (
-                        <span className="text-sm text-muted-foreground">Sin asignar</span>
+                        <Badge variant="outline" className="text-orange-600 border-orange-600">
+                          Sin asignar
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {new Date(cotizacion.created_at).toLocaleDateString("es-PE", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{QuoteService.formatDate(quote.createdAt)}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {QuoteService.getTimeAgo(quote.createdAt)}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -423,32 +388,32 @@ export default function QuotesManagementPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedQuote(cotizacion)
-                              setDetailDialogOpen(true)
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
+                          <DropdownMenuItem>
+                            <Eye className="mr-2 h-4 w-4" />
                             Ver Detalles
                           </DropdownMenuItem>
-                          {!cotizacion.asesor_asignado_id && (
-                            <DropdownMenuItem onClick={() => handleAsignarAsesor(cotizacion.id)}>
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Asignar Asesor
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleCambiarEstado(cotizacion.id, "en-proceso")}>
-                            En Proceso
+                          <DropdownMenuItem>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCambiarEstado(cotizacion.id, "enviada")}>
-                            Marcar como Enviada
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedQuote(quote)
+                              setAssignDialogOpen(true)
+                            }}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Asignar Asesor
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCambiarEstado(cotizacion.id, "cerrada")}>
-                            Cerrar
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setQuoteToDelete(quote)
+                              setDeleteDialogOpen(true)
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -458,89 +423,86 @@ export default function QuotesManagementPage() {
               </TableBody>
             </Table>
 
-            {cotizacionesFiltradas.length === 0 && (
+            {filteredQuotes.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No se encontraron cotizaciones con los filtros seleccionados.</p>
+                <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No se encontraron cotizaciones</h3>
+                <p className="text-muted-foreground mb-4">
+                  No hay cotizaciones que coincidan con los filtros seleccionados.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setStatusFilter("all")
+                    setPriorityFilter("all")
+                  }}
+                >
+                  Limpiar Filtros
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
       </main>
 
-      {/* Detail Dialog */}
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      {/* Assign Advisor Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Detalles de la Cotización</DialogTitle>
-            <DialogDescription>Información completa de la solicitud</DialogDescription>
+            <DialogTitle>Asignar Asesor</DialogTitle>
+            <DialogDescription>
+              Selecciona un asesor para la cotización de {selectedQuote?.clienteNombre}
+            </DialogDescription>
           </DialogHeader>
-          {selectedQuote && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Cliente</label>
-                  <p className="text-sm font-medium">{selectedQuote.cliente_nombre}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Empresa</label>
-                  <p className="text-sm font-medium">{selectedQuote.empresa || '-'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <p className="text-sm">{selectedQuote.cliente_email}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Teléfono</label>
-                  <p className="text-sm">{selectedQuote.cliente_telefono || '-'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tipo de Vehículo</label>
-                  <p className="text-sm font-medium">{selectedQuote.tipo_vehiculo}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Prioridad</label>
-                  <div className="mt-1">{getPrioridadBadge(selectedQuote.prioridad)}</div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Mensaje</label>
-                <p className="text-sm mt-1 p-3 bg-muted rounded-lg">{selectedQuote.mensaje}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Estado</label>
-                  <div className="mt-1">{getEstadoBadge(selectedQuote.estado)}</div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Asesor Asignado</label>
-                  <p className="text-sm mt-1">{selectedQuote.asesor_nombre || "Sin asignar"}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="py-4">
+            <Select value={selectedAdvisor} onValueChange={setSelectedAdvisor}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar asesor" />
+              </SelectTrigger>
+              <SelectContent>
+                {advisorsLoading ? (
+                  <SelectItem value="" disabled>Cargando asesores...</SelectItem>
+                ) : advisors?.length ? (
+                  advisors.map((advisor: User) => (
+                    <SelectItem key={advisor.id} value={advisor.id.toString()}>
+                      {advisor.nombre} - {advisor.email}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>No hay asesores disponibles</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
-              Cerrar
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancelar
             </Button>
-            {selectedQuote && !selectedQuote.asesor_asignado_id && (
-              <Button
-                onClick={() => {
-                  handleAsignarAsesor(selectedQuote.id)
-                  setDetailDialogOpen(false)
-                }}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Asignar Asesor
-              </Button>
-            )}
+            <Button onClick={handleAssignAdvisor} disabled={!selectedAdvisor || advisorsLoading}>
+              Asignar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas eliminar la cotización de {quoteToDelete?.clienteNombre}? Esta acción no se
+              puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteQuote}>
+              Eliminar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

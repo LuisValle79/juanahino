@@ -1,5 +1,5 @@
-export type UserRole = 'admin' | 'asesor'
-export type UserStatus = 'activo' | 'inactivo'
+export type UserRole = 'admin' | 'asesor' | 'mecanico' | 'supervisor'
+export type UserStatus = 'activo' | 'inactivo' | 'suspendido'
 
 export interface User {
   id: number
@@ -10,14 +10,15 @@ export interface User {
   especialidad: string
   estado: UserStatus
   ventas: number
-  fecha_ingreso: Date | string
+  fechaIngreso: string // Backend uses camelCase
+  avatarUrl?: string // Backend uses camelCase
+  passwordHash?: string // Backend uses camelCase
+  createdAt: string // Backend uses camelCase
+  updatedAt: string // Backend uses camelCase
+  // Backward compatibility fields
+  fecha_ingreso?: string
   avatar_url?: string
-  avatarUrl?: string // For backward compatibility
   password_hash?: string
-  passwordHash?: string // For backward compatibility
-  created_at: Date | string
-  updated_at: Date | string
-  createdAt?: Date | string // For backward compatibility
-  updatedAt?: Date | string // For backward compatibility
-  fechaIngreso?: string // For form compatibility
+  created_at?: Date | string
+  updated_at?: Date | string
 }

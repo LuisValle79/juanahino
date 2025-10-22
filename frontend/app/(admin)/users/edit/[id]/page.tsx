@@ -13,7 +13,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { BackendImage } from "@/components/BackendImage"
-import { User, UserRole, UserStatus } from "@/types/user"
+import { UserAvatarManager } from "@/components/UserAvatarManager"
+import { UserRole, UserStatus } from "@/types/user"
 
 export default function EditUserPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -40,8 +41,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     confirmNewPassword: ""
   })
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string>("")
 
   // Cargar datos del usuario
   useEffect(() => {
@@ -70,7 +70,9 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
             fechaIngreso: user.fechaIngreso || "",
           });
           // Manejar avatar_url
-          if (user.avatar_url || user.avatarUrl) setImagePreview(user.avatar_url || user.avatarUrl);
+          if (user.avatar_url || user.avatarUrl) {
+            setAvatarUrl(user.avatar_url || user.avatarUrl);
+          }
         } else {
           throw new Error("Usuario no encontrado");
         }
@@ -91,25 +93,8 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     loadUser()
   }, [params.id, router, toast])
 
-  // === MANEJO DE IMAGEN ===
-  const triggerFileInput = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setImageFile(file)
-    const reader = new FileReader()
-    reader.onloadend = () => setImagePreview(reader.result as string)
-    reader.readAsDataURL(file)
-  }
-
-  const removeImage = () => {
-    setImagePreview(null)
-    setImageFile(null)
-    if (fileInputRef.current) fileInputRef.current.value = ""
+  const handleAvatarChange = (newAvatarUrl: string) => {
+    setAvatarUrl(newAvatarUrl)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,6 +119,24 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
       return
     }
 
+    if (!formData.rol) {
+      toast({
+        title: "Error",
+        description: "El rol es requerido.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.estado) {
+      toast({
+        title: "Error",
+        description: "El estado es requerido.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmNewPassword) {
       toast({
         title: "Error",
@@ -145,84 +148,59 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
 
     try {
       setIsUploading(true)
-      let uploadedUrl = imagePreview
 
-      // Subir imagen si hay archivo nuevo
-      if (imageFile) {
-        try {
-          const formDataImg = new FormData()
-          formDataImg.append("file", imageFile)
-          
-          // Usar el endpoint del backend (puerto 8080)
-          const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080'}/api/upload`, { 
-            method: "POST", 
-            body: formDataImg 
-          })
-          
-          if (!uploadRes.ok) {
-            throw new Error(`Error ${uploadRes.status}: ${uploadRes.statusText}`)
-          }
-          
-          const uploadData = await uploadRes.json()
-          
-          if (uploadData.success) {
-            // Guardar solo la ruta relativa, no la URL completa
-            uploadedUrl = uploadData.url // Esto será algo como "/uploads/imagen.jpg"
-            toast({
-              title: "Imagen subida",
-              description: "La imagen se ha subido correctamente.",
-            });
-          } else {
-            throw new Error(uploadData.message || "Error al subir la imagen")
-          }
-        } catch (uploadError) {
-          console.error("Error uploading image:", uploadError)
-          toast({
-            title: "Error",
-            description: `No se pudo subir la imagen: ${uploadError instanceof Error ? uploadError.message : 'Error desconocido'}`,
-            variant: "destructive",
-          });
-          // Mantener la imagen preview actual si falla el upload
-          uploadedUrl = imagePreview;
-        }
-      }
-
-      // Crear objeto basado en el usuario original, manteniendo TODOS los campos
+      // Crear objeto con solo los campos que se pueden actualizar
       const updateData: any = {
-        id: originalUser.id,
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono,
-        rol: formData.rol as UserRole,
-        especialidad: formData.especialidad,
-        estado: formData.estado as UserStatus,
-        ventas: formData.ventas || 0,
-        fecha_ingreso: originalUser.fecha_ingreso || originalUser.fechaIngreso, // Mantener fecha original
-        avatar_url: uploadedUrl || originalUser.avatar_url || originalUser.avatarUrl || undefined,
-        password_hash: originalUser.password_hash || originalUser.passwordHash, // Mantener password original
-        created_at: originalUser.created_at || originalUser.createdAt, // Mantener fecha de creación
-        updated_at: new Date().toISOString(), // Actualizar timestamp
+        nombre: formData.nombre.trim(),
+        email: formData.email.trim(),
+        telefono: formData.telefono.trim(),
+        rol: formData.rol,
+        especialidad: formData.especialidad.trim() || "",
+        estado: formData.estado,
+        ventas: Number(formData.ventas) || 0,
       }
 
-      // Solo cambiar password si se proporcionó uno nuevo
+      // Incluir avatarUrl si se ha actualizado
+      if (avatarUrl) {
+        updateData.avatarUrl = avatarUrl;
+      }
+
+      // Solo agregar password si se proporcionó uno nuevo
       if (passwordData.newPassword && passwordData.newPassword.trim()) {
-        updateData.passwordHash = passwordData.newPassword;
+        updateData.passwordHash = passwordData.newPassword.trim();
       }
 
       console.log("Usuario original:", originalUser);
-      console.log("Datos a enviar:", updateData); // Debug log
+      console.log("Datos a enviar con Cloudinary:", updateData);
       
       await apiClient.updateUser(Number(params.id), updateData)
-      toast({ title: "Usuario actualizado", description: `${formData.nombre} ha sido actualizado.` })
-      router.push("/users")
+      toast({ 
+        title: "Usuario actualizado", 
+        description: `${formData.nombre} ha sido actualizado exitosamente.` 
+      })
+      
+      // Agregar un pequeño delay para asegurar que el backend procese la actualización
+      setTimeout(() => {
+        router.push("/users?refresh=true")
+      }, 500)
     } catch (error) {
       console.error("Error completo:", error)
       const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-      toast({
-        title: "Error",
-        description: `No se pudo actualizar el usuario: ${errorMessage}`,
-        variant: "destructive",
-      })
+      
+      // Mensaje más específico para el error 400
+      if (errorMessage.includes("Bad Request") || errorMessage.includes("400")) {
+        toast({
+          title: "Error de Actualización",
+          description: "El backend no pudo procesar la actualización. Esto puede deberse a un problema de validación en el servidor. Por favor, contacta al administrador del sistema.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: `No se pudo actualizar el usuario: ${errorMessage}`,
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsUploading(false)
     }
@@ -283,46 +261,110 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
 
-            {/* Foto de Perfil */}
+            {/* Información Profesional */}
             <Card>
-              <CardHeader><CardTitle>Foto de Perfil</CardTitle></CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  {imagePreview ? (
-                    <div className="relative inline-block">
-                      <BackendImage src={imagePreview} alt="Vista previa" className="max-h-48 rounded-lg object-contain" />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 rounded-full"
-                        onClick={removeImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Arrastra y suelta una imagen aquí, o haz clic para seleccionar
-                      </p>
-                      <div className="relative inline-block">
-                        <Button type="button" variant="outline" size="sm" disabled={isUploading}>
-                          {isUploading ? "Subiendo..." : "Seleccionar Imagen"}
-                        </Button>
-                        <Input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          onChange={handleImageChange}
-                          disabled={isUploading}
-                        />
-                      </div>
-                    </div>
-                  )}
+              <CardHeader><CardTitle>Información Profesional</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="rol">Rol *</Label>
+                    <Select value={formData.rol} onValueChange={value => setFormData({ ...formData, rol: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="asesor">Asesor de Ventas</SelectItem>
+                        <SelectItem value="mecanico">Mecánico</SelectItem>
+                        <SelectItem value="supervisor">Supervisor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="estado">Estado *</Label>
+                    <Select value={formData.estado} onValueChange={value => setFormData({ ...formData, estado: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="activo">Activo</SelectItem>
+                        <SelectItem value="inactivo">Inactivo</SelectItem>
+                        <SelectItem value="suspendido">Suspendido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="especialidad">Especialidad</Label>
+                    <Input 
+                      id="especialidad" 
+                      value={formData.especialidad} 
+                      onChange={e => setFormData({ ...formData, especialidad: e.target.value })} 
+                      placeholder="Ej: Buses Interurbanos, Camiones, etc."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ventas">Ventas Realizadas</Label>
+                    <Input 
+                      id="ventas" 
+                      type="number" 
+                      value={formData.ventas} 
+                      onChange={e => setFormData({ ...formData, ventas: Number(e.target.value) })} 
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cambiar Contraseña */}
+            <Card>
+              <CardHeader><CardTitle>Cambiar Contraseña</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Deja estos campos vacíos si no deseas cambiar la contraseña
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                    <Input 
+                      id="newPassword" 
+                      type="password" 
+                      value={passwordData.newPassword} 
+                      onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })} 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmNewPassword">Confirmar Nueva Contraseña</Label>
+                    <Input 
+                      id="confirmNewPassword" 
+                      type="password" 
+                      value={passwordData.confirmNewPassword} 
+                      onChange={e => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })} 
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Avatar con Cloudinary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Avatar del Usuario</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Gestiona el avatar que se almacenará en Cloudinary con optimización automática
+                </p>
+              </CardHeader>
+              <CardContent>
+                <UserAvatarManager
+                  userId={Number(params.id)}
+                  userName={formData.nombre}
+                  userRole={formData.rol}
+                  size="large"
+                  editable={true}
+                  showInfo={true}
+                />
               </CardContent>
             </Card>
 
@@ -333,7 +375,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
               </Link>
               <Button type="submit" disabled={isUploading}>
                 <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
+                {isUploading ? "Guardando..." : "Guardar Cambios"}
               </Button>
             </div>
           </div>

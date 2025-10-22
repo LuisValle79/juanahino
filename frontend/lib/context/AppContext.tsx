@@ -96,11 +96,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_LOADING', payload: true });
         const notifications = await apiClient.getNotifications() as Notification[];
         dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+        dispatch({ type: 'SET_ERROR', payload: null }); // Clear error on success
       } catch (error) {
-        dispatch({ 
-          type: 'SET_ERROR', 
-          payload: error instanceof Error ? error.message : 'Error loading notifications' 
-        });
+        // Silenciar errores de notificaciones para no saturar la consola
+        console.warn('Notifications service unavailable:', error instanceof Error ? error.message : 'Unknown error');
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: [] }); // Set empty array as fallback
+        dispatch({ type: 'SET_ERROR', payload: null }); // Don't show error to user
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
@@ -111,7 +112,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const count = await apiClient.getUnreadNotificationCount() as number;
         dispatch({ type: 'SET_UNREAD_COUNT', payload: count });
       } catch (error) {
-        console.error('Error loading unread count:', error);
+        // Silenciar errores y usar 0 como fallback
+        dispatch({ type: 'SET_UNREAD_COUNT', payload: 0 });
       }
     },
 

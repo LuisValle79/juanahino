@@ -22,12 +22,12 @@ export default function HomePage() {
             Líderes en venta de camiones y buses comerciales. Calidad, confianza y tecnología al servicio de tu negocio.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/catalogo">
+            <Link href="/public/catalogo">
               <Button size="lg" className="text-lg px-8">
                 Ver Catálogo
               </Button>
             </Link>
-            <Link href="/contacto">
+            <Link href="/public/contacto">
               <Button
                 size="lg"
                 variant="outline"
@@ -110,7 +110,7 @@ export default function HomePage() {
                 <p className="text-muted-foreground mb-4">
                   Camiones de carga ligera, mediana y pesada para todo tipo de operaciones comerciales.
                 </p>
-                <Link href="/catalogo?tipo=camiones">
+                <Link href="/public/catalogo?tipo=camion">
                   <Button variant="outline" className="w-full bg-transparent">
                     Ver Camiones
                   </Button>
@@ -135,7 +135,7 @@ export default function HomePage() {
                 <p className="text-muted-foreground mb-4">
                   Buses urbanos e interurbanos con la mejor tecnología y confort para pasajeros.
                 </p>
-                <Link href="/catalogo?tipo=buses">
+                <Link href="/public/catalogo?tipo=bus">
                   <Button variant="outline" className="w-full bg-transparent">
                     Ver Buses
                   </Button>
@@ -154,13 +154,13 @@ export default function HomePage() {
             Contáctanos hoy y descubre cómo HINO puede ayudarte a llevar tu operación al siguiente nivel.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/contacto">
+            <Link href="/public/contacto">
               <Button size="lg" variant="secondary" className="text-lg px-8">
                 <Phone className="mr-2 h-5 w-5" />
                 Contactar Asesor
               </Button>
             </Link>
-            <Link href="/catalogo">
+            <Link href="/public/catalogo">
               <Button
                 size="lg"
                 variant="outline"

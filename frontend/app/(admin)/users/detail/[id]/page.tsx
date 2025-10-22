@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { SimpleUserAvatar } from "@/components/SimpleUserAvatar"
 import { ArrowLeft, Edit, Shield, UserCheck } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -129,15 +130,13 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
             <CardContent>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={user.avatar_url || "/placeholder.svg"} alt={user.nombre} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                      {user.nombre
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
+                  <SimpleUserAvatar
+                    userId={user.id}
+                    userName={user.nombre}
+                    userRole={user.rol}
+                    avatarUrl={user.avatar_url || user.avatarUrl}
+                    size="xlarge"
+                  />
                   <div className="mt-4 text-center">
                     <h2 className="text-xl font-bold">{user.nombre}</h2>
                     <p className="text-muted-foreground">{user.email}</p>
@@ -168,7 +167,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   <div>
                     <p className="text-sm text-muted-foreground">Fecha de Ingreso</p>
                     <p className="font-medium">
-                      {new Date(user.fecha_ingreso).toLocaleDateString("es-PE")}
+                      {new Date(user.fechaIngreso || user.fecha_ingreso).toLocaleDateString("es-PE")}
                     </p>
                   </div>
                   

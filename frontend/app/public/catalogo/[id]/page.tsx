@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Truck, Bus, Calendar, Fuel, Gauge, Users, Phone, Mail, MapPin } from "lucide-react"
+import { Truck, Bus, Calendar, Fuel, Gauge, Phone, Mail, MapPin } from "lucide-react"
 import { Vehicle } from "@/types/vehicle"
 import { apiClient } from "@/lib/api"
 import { BackendImage } from "@/components/BackendImage"
@@ -16,6 +16,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
   const router = useRouter()
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [relatedVehicles, setRelatedVehicles] = useState<Vehicle[]>([])
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
         setRelatedVehicles(filteredRelated)
       } catch (error) {
         console.error("Error loading vehicle:", error)
-        router.push('/public/catalogo')
+        setError("No se pudo cargar el vehículo. El servicio no está disponible.")
       } finally {
         setLoading(false)
       }
@@ -55,12 +56,16 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
     )
   }
 
-  if (!vehicle) {
+  if (error || !vehicle) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Vehículo no encontrado</h2>
-          <p className="text-muted-foreground mb-6">Lo sentimos, no pudimos encontrar el vehículo que buscas.</p>
+          <h2 className="text-2xl font-bold mb-4">
+            {error ? "Error al cargar" : "Vehículo no encontrado"}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {error || "Lo sentimos, no pudimos encontrar el vehículo que buscas."}
+          </p>
           <Link href="/public/catalogo">
             <Button>Volver al catálogo</Button>
           </Link>

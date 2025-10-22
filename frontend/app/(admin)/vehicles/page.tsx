@@ -27,6 +27,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useVehicles, useVehicleStats } from "@/hooks/useApi"
 import { Vehicle, VehicleStats } from "@/types/vehicle"
+import VehicleService from "@/lib/services/vehicleService"
+import { VehicleImage } from "@/components/VehicleImage"
 import { Loading, LoadingCard } from "@/components/ui/loading"
 import { ConnectionStatus } from "@/components/ConnectionStatus"
 import Link from "next/link"
@@ -53,38 +55,10 @@ export default function VehiclesPage() {
     })
   }, [vehicles, searchTerm, statusFilter])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "disponible":
-        return "bg-green-100 text-green-800"
-      case "reservado":
-        return "bg-amber-100 text-amber-800"
-      case "vendido":
-        return "bg-gray-100 text-gray-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "disponible":
-        return "Disponible"
-      case "reservado":
-        return "Reservado"
-      case "vendido":
-        return "Vendido"
-      default:
-        return "Desconocido"
-    }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price)
-  }
+  // Usar métodos del servicio
+  const getStatusColor = VehicleService.getStatusColor
+  const getStatusText = VehicleService.getStatusText
+  const formatPrice = VehicleService.formatPrice
 
   // Show loading state
   if (vehiclesLoading) {
@@ -255,6 +229,18 @@ export default function VehiclesPage() {
         {filteredVehicles.map((vehicle: Vehicle) => (
           <Card key={vehicle.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
+              {/* Imagen del vehículo */}
+              <div className="mb-4">
+                <VehicleImage
+                  vehicleId={vehicle.id}
+                  src={vehicle.imagenUrl || vehicle.imagen_url}
+                  alt={`${vehicle.modelo} - ${vehicle.categoria}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                  size="medium"
+                  showPlaceholder={true}
+                />
+              </div>
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">

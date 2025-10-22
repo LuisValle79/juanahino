@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
 import { VehicleType, VehicleStatus } from "@/types/vehicle"
+import { VehicleImageUpload } from "@/components/VehicleImageUpload"
 
 export default function AddVehiclePage() {
   const router = useRouter()
@@ -32,98 +33,29 @@ export default function AddVehiclePage() {
     stock: "1",
     descripcion: "",
   })
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
+  const [vehicleImageUrl, setVehicleImageUrl] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const removeImage = () => {
-    setImagePreview(null)
-    setImageFile(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-  }
-
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
-  }
-
-  const uploadImageToVehicle = async (vehicleId: number): Promise<string | null> => {
-    if (!imageFile) return null
-    
-    try {
-      setIsUploading(true)
-      
-      // Usar el nuevo endpoint específico para vehículos
-      const uploadResult = await apiClient.uploadVehicleImage(vehicleId, imageFile, true) // true = imagen principal
-      
-      if (uploadResult.success) {
-        console.log('📤 Imagen de vehículo subida exitosamente:', uploadResult) // Debug log
-        // Retornar la URL de la imagen
-        return `/api/vehicles/images/${uploadResult.imageId}`
-      } else {
-        throw new Error(uploadResult.message || "Error al subir la imagen")
-      }
-    } catch (error) {
-      console.error("Error uploading vehicle image:", error)
-      toast({
-        title: "Error",
-        description: `No se pudo subir la imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-        variant: "destructive",
-      })
-      return null
-    } finally {
-      setIsUploading(false)
-    }
+  const handleImageChange = (imageUrl: string) => {
+    setVehicleImageUrl(imageUrl)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!formData.modelo || !formData.tipo || !formData.categoria) {
+      toast({
+        title: "Error",
+        description: "Por favor completa todos los campos obligatorios.",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    setIsSubmitting(true)
+    
     try {
-      // Subir imagen primero si existe (método anterior que funcionaba)
-      let imageUrl = null
-      if (imageFile) {
-        try {
-          setIsUploading(true)
-          
-          const formDataImg = new FormData()
-          formDataImg.append("file", imageFile)
-          
-          const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080'}/api/upload`, { 
-            method: "POST", 
-            body: formDataImg 
-          })
-          
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json()
-            if (uploadData.success) {
-              imageUrl = uploadData.url
-              console.log('📤 Imagen subida exitosamente:', imageUrl)
-            }
-          }
-        } catch (uploadError) {
-          console.error("Error uploading image:", uploadError)
-        } finally {
-          setIsUploading(false)
-        }
-      }
-      
-      // Crear vehículo con imagen_url
+      // Crear vehículo con imagen de Cloudinary
       const vehicleData = {
         modelo: formData.modelo,
         tipo: formData.tipo as VehicleType,
@@ -135,21 +67,17 @@ export default function AddVehiclePage() {
         estado: formData.estado as VehicleStatus,
         stock: parseInt(formData.stock) || 1,
         descripcion: formData.descripcion,
-        imagenUrl: imageUrl || undefined
+        imagenUrl: vehicleImageUrl || undefined
       }
       
-      console.log('💾 Creando vehículo:', vehicleData) // Debug log
+      console.log('💾 Creando vehículo con Cloudinary:', vehicleData)
       
       await apiClient.createVehicle(vehicleData)
       
       toast({
         title: "Vehículo agregado",
-        description: `${formData.modelo} ha sido agregado al inventario exitosamente.`,
+        description: `${formData.modelo} ha sido agregado al inventario exitosamente con imagen de Cloudinary.`,
       })
-      
-      // Limpiar estado local antes de navegar
-      setImagePreview(null)
-      setImageFile(null)
       
       router.push("/fleet")
     } catch (error) {
@@ -159,6 +87,8 @@ export default function AddVehiclePage() {
         variant: "destructive",
       })
       console.error("Error adding vehicle:", error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -350,60 +280,21 @@ export default function AddVehiclePage() {
               </CardContent>
             </Card>
 
-            {/* Imágenes */}
+            {/* Imágenes con Cloudinary */}
             <Card>
               <CardHeader>
-                <CardTitle>Imágenes del Vehículo</CardTitle>
+                <CardTitle>Imagen del Vehículo</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Sube una imagen que se almacenará en Cloudinary con optimización automática
+                </p>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  {imagePreview ? (
-                    <div className="relative inline-block">
-                      <img 
-                        src={imagePreview} 
-                        alt="Vista previa" 
-                        className="max-h-48 rounded-lg object-contain"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 rounded-full"
-                        onClick={removeImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Arrastra y suelta imágenes aquí, o haz clic para seleccionar
-                        </p>
-                        <div className="relative">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={triggerFileInput}
-                            disabled={isUploading}
-                          >
-                            {isUploading ? "Subiendo..." : "Seleccionar Archivos"}
-                          </Button>
-                          <Input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            onChange={handleImageChange}
-                            disabled={isUploading}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <VehicleImageUpload
+                  currentImageUrl={vehicleImageUrl}
+                  onImageChange={handleImageChange}
+                  size="large"
+                  showPreview={true}
+                />
               </CardContent>
             </Card>
 
@@ -414,8 +305,8 @@ export default function AddVehiclePage() {
                   Cancelar
                 </Button>
               </Link>
-              <Button type="submit" disabled={isUploading}>
-                {isUploading ? "Guardando vehículo..." : (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Guardando vehículo..." : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
                     Guardar Vehículo

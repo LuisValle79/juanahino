@@ -4,15 +4,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { 
   LayoutDashboard, Truck, Users, FileText, Bell, LogOut, 
-  Menu, X, BarChart3, Wrench, ShoppingCart, Car 
+  Menu, X, BarChart3, Wrench, Car 
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NotificationCenter } from "@/components/NotificationCenter"
-import { useNotifications } from "@/hooks/useNotifications"
+import { NotificationIndicator } from "@/components/NotificationIndicator"
+
 
 // Define the type for navigation items
 interface NavItem {
@@ -25,9 +24,7 @@ interface NavItem {
 export function AdminNav() {
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false)
   const { user, logout } = useAuth()
-  const { unreadCount, refresh } = useNotifications()
 
   const navItems: NavItem[] = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -79,23 +76,10 @@ export function AdminNav() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Notification Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="relative text-neutral-600 hover:text-[#D71920] hover:bg-[#D71920]/10"
-            onClick={() => setIsNotificationCenterOpen(true)}
-          >
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center"
-              >
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Badge>
-            )}
-          </Button>
+          {/* Notification Indicator */}
+          <NotificationIndicator 
+            className="text-neutral-600 hover:text-[#D71920] hover:bg-[#D71920]/10"
+          />
           
           <Link href="/" target="_blank">
             <Button variant="ghost" size="sm" className="text-neutral-600 hover:text-[#D71920] hover:bg-[#D71920]/10">
@@ -250,12 +234,7 @@ export function AdminNav() {
         </>
       )}
       
-      {/* Notification Center */}
-      <NotificationCenter
-        isOpen={isNotificationCenterOpen}
-        onClose={() => setIsNotificationCenterOpen(false)}
-        onNotificationUpdate={refresh}
-      />
+
     </>
   )
 }
