@@ -26,6 +26,7 @@ export interface NotificationCenterProps {
   autoRefresh?: boolean
   refreshInterval?: number
   // Props para dropdown compacto
+  onDropdownToggle?: () => void // <-- agregada
   isDropdownOpen?: boolean
   onNotificationUpdate?: () => void
   // Props para modal
