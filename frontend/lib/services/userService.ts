@@ -22,11 +22,11 @@ export class UserService {
     }
   }
 
-  // Obtener usuario por email
+  // Obtener usuario por email (filtrado localmente)
   static async getByEmail(email: string): Promise<User | null> {
     try {
-      const encodedEmail = encodeURIComponent(email)
-      return await apiClient.getUserByEmail(encodedEmail)
+      const allUsers = await this.getAll()
+      return allUsers.find(user => user.email.toLowerCase() === email.toLowerCase()) || null
     } catch (error: any) {
       console.error(`UserService: Error loading user by email ${email}:`, error.message)
       return null
