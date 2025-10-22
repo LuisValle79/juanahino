@@ -166,9 +166,10 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   
                   <div>
                     <p className="text-sm text-muted-foreground">Fecha de Ingreso</p>
-                    <p className="font-medium">
-                      {new Date(user.fechaIngreso || user.fecha_ingreso).toLocaleDateString("es-PE")}
-                    </p>
+<p className="font-medium">
+  {new Date(user.fechaIngreso || user.fecha_ingreso || Date.now()).toLocaleDateString("es-PE")}
+</p>
+
                   </div>
                   
                   {user.rol === "asesor" && (
